@@ -1,0 +1,731 @@
+// Add item page - multi-step flow for adding media items
+
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Camera, Image, Film, Tv, HelpCircle, 
+  ChevronRight, Check, Search, Loader2,
+  RotateCcw, Sparkles
+} from 'lucide-react';
+import { PageHeader } from '@/components/PageHeader';
+import { FormatBadge } from '@/components/FormatBadge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useAppStore } from '@/stores/appStore';
+import { libraryRepository, itemRepository } from '@/db';
+import { cameraService, ocrService, tmdbService, storageService } from '@/services';
+import type { Library, MediaType, MediaFormat, TMDBSearchResult } from '@/types';
+
+type Step = 'select-library' | 'select-type' | 'capture-images' | 'edit-metadata' | 'tmdb-match' | 'confirm';
+
+const MEDIA_FORMATS: { value: MediaFormat; label: string }[] = [
+  { value: 'DVD', label: 'DVD' },
+  { value: 'Blu-ray', label: 'Blu-ray' },
+  { value: '4K Blu-ray', label: '4K Blu-ray' },
+  { value: 'Digital', label: 'Digital' },
+  { value: 'VHS', label: 'VHS' },
+  { value: 'Other', label: 'Övrigt' },
+];
+
+const MEDIA_TYPES: { value: MediaType; label: string; icon: typeof Film }[] = [
+  { value: 'movie', label: 'Film', icon: Film },
+  { value: 'series', label: 'Serie', icon: Tv },
+  { value: 'other', label: 'Övrigt', icon: HelpCircle },
+];
+
+export default function AddItemPage() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { currentOwner } = useAppStore();
+
+  // State
+  const [step, setStep] = useState<Step>('select-library');
+  const [libraries, setLibraries] = useState<Library[]>([]);
+  const [selectedLibrary, setSelectedLibrary] = useState<Library | null>(null);
+  const [mediaType, setMediaType] = useState<MediaType>('movie');
+  const [format, setFormat] = useState<MediaFormat>('Blu-ray');
+  const [frontImage, setFrontImage] = useState<string | null>(null);
+  const [backImage, setBackImage] = useState<string | null>(null);
+  const [isProcessingOcr, setIsProcessingOcr] = useState(false);
+  
+  // Metadata
+  const [title, setTitle] = useState('');
+  const [year, setYear] = useState('');
+  const [season, setSeason] = useState('');
+  const [audioInfo, setAudioInfo] = useState('');
+  const [videoInfo, setVideoInfo] = useState('');
+  const [notes, setNotes] = useState('');
+  
+  // TMDB
+  const [tmdbResults, setTmdbResults] = useState<TMDBSearchResult[]>([]);
+  const [selectedTmdb, setSelectedTmdb] = useState<TMDBSearchResult | null>(null);
+  const [isSearchingTmdb, setIsSearchingTmdb] = useState(false);
+  
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Load libraries
+  useEffect(() => {
+    const loadLibraries = async () => {
+      if (!currentOwner) return;
+      const libs = await libraryRepository.getByOwner(currentOwner.ownerId);
+      setLibraries(libs);
+
+      // Pre-select library from URL param
+      const libraryId = searchParams.get('library');
+      if (libraryId) {
+        const lib = libs.find(l => l.libraryId === libraryId);
+        if (lib) {
+          setSelectedLibrary(lib);
+          setStep('select-type');
+        }
+      }
+    };
+    loadLibraries();
+  }, [currentOwner, searchParams]);
+
+  // Capture front image
+  const handleCaptureFront = async () => {
+    const image = await cameraService.capturePhoto();
+    if (image) {
+      setFrontImage(image.dataUrl);
+    }
+  };
+
+  // Capture back image
+  const handleCaptureBack = async () => {
+    const image = await cameraService.capturePhoto();
+    if (image) {
+      setBackImage(image.dataUrl);
+    }
+  };
+
+  // Process OCR and proceed
+  const handleProcessImages = async () => {
+    setIsProcessingOcr(true);
+    
+    try {
+      const ocrResults = await ocrService.processMediaCovers(
+        frontImage || undefined,
+        backImage || undefined
+      );
+      
+      if (ocrResults.suggestedTitle) setTitle(ocrResults.suggestedTitle);
+      if (ocrResults.suggestedYear) setYear(ocrResults.suggestedYear.toString());
+      if (ocrResults.suggestedSeason) setSeason(ocrResults.suggestedSeason.toString());
+      if (ocrResults.audioInfo) setAudioInfo(ocrResults.audioInfo);
+      if (ocrResults.videoInfo) setVideoInfo(ocrResults.videoInfo);
+    } catch (error) {
+      console.error('OCR failed:', error);
+    }
+    
+    setIsProcessingOcr(false);
+    setStep('edit-metadata');
+  };
+
+  // Search TMDB
+  const handleSearchTmdb = async () => {
+    if (!title.trim()) return;
+    
+    setIsSearchingTmdb(true);
+    
+    try {
+      const yearNum = year ? parseInt(year) : undefined;
+      const results = await tmdbService.search(title, mediaType, yearNum);
+      setTmdbResults(results);
+    } catch (error) {
+      console.error('TMDB search failed:', error);
+    }
+    
+    setIsSearchingTmdb(false);
+  };
+
+  // Save item
+  const handleSave = async () => {
+    if (!selectedLibrary || !currentOwner || !title.trim()) return;
+    
+    setIsSaving(true);
+    
+    try {
+      // Generate item ID first
+      const itemId = crypto.randomUUID();
+      
+      // Save images
+      let frontImagePath: string | undefined;
+      let backImagePath: string | undefined;
+      
+      if (frontImage) {
+        frontImagePath = await storageService.saveImage(frontImage, itemId, 'front');
+      }
+      if (backImage) {
+        backImagePath = await storageService.saveImage(backImage, itemId, 'back');
+      }
+      
+      // Create item
+      await itemRepository.create(
+        selectedLibrary.libraryId,
+        currentOwner.ownerId,
+        {
+          type: mediaType,
+          title: title.trim(),
+          format,
+          year: year ? parseInt(year) : undefined,
+          season: season ? parseInt(season) : undefined,
+          frontImagePath,
+          backImagePath,
+          tmdbId: selectedTmdb?.id,
+          audioInfo: audioInfo || undefined,
+          videoInfo: videoInfo || undefined,
+          notes: notes.trim() || undefined,
+        },
+        selectedLibrary.sharedLibraryId
+      );
+      
+      // If TMDB was selected, cache the data
+      if (selectedTmdb) {
+        const details = await tmdbService.getDetails(selectedTmdb.id, mediaType);
+        // Details are automatically cached by the service
+      }
+      
+      navigate(`/libraries/${selectedLibrary.libraryId}`);
+    } catch (error) {
+      console.error('Failed to save item:', error);
+      setIsSaving(false);
+    }
+  };
+
+  const renderStep = () => {
+    switch (step) {
+      case 'select-library':
+        return (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-4"
+          >
+            <h2 className="text-lg font-semibold mb-4">Välj bibliotek</h2>
+            
+            {libraries.length > 0 ? (
+              <div className="space-y-3">
+                {libraries.map((lib) => (
+                  <button
+                    key={lib.libraryId}
+                    onClick={() => {
+                      setSelectedLibrary(lib);
+                      setStep('select-type');
+                    }}
+                    className="w-full flex items-center gap-4 p-4 rounded-xl bg-card border border-border hover:bg-secondary/50 transition-colors text-left"
+                  >
+                    <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center text-2xl">
+                      {lib.icon || '📚'}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium">{lib.name}</p>
+                      {lib.description && (
+                        <p className="text-sm text-muted-foreground truncate">{lib.description}</p>
+                      )}
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground mb-4">Inga bibliotek ännu</p>
+                <Button onClick={() => navigate('/libraries/create')}>
+                  Skapa bibliotek
+                </Button>
+              </div>
+            )}
+          </motion.div>
+        );
+
+      case 'select-type':
+        return (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-6"
+          >
+            <div>
+              <h2 className="text-lg font-semibold mb-4">Typ av media</h2>
+              <div className="grid grid-cols-3 gap-3">
+                {MEDIA_TYPES.map((type) => {
+                  const Icon = type.icon;
+                  return (
+                    <button
+                      key={type.value}
+                      onClick={() => setMediaType(type.value)}
+                      className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all ${
+                        mediaType === type.value
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-card border-border hover:bg-secondary/50'
+                      }`}
+                    >
+                      <Icon className="w-8 h-8" />
+                      <span className="text-sm font-medium">{type.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold mb-4">Format</h2>
+              <div className="grid grid-cols-3 gap-3">
+                {MEDIA_FORMATS.map((f) => (
+                  <button
+                    key={f.value}
+                    onClick={() => setFormat(f.value)}
+                    className={`p-3 rounded-xl border text-sm font-medium transition-all ${
+                      format === f.value
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-card border-border hover:bg-secondary/50'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Button 
+              className="w-full" 
+              size="lg"
+              onClick={() => setStep('capture-images')}
+            >
+              Fortsätt
+              <ChevronRight className="w-4 h-4 ml-2" />
+            </Button>
+          </motion.div>
+        );
+
+      case 'capture-images':
+        return (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-6"
+          >
+            <h2 className="text-lg font-semibold">Fota omslaget</h2>
+            
+            <div className="grid grid-cols-2 gap-4">
+              {/* Front image */}
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Framsida</p>
+                <button
+                  onClick={handleCaptureFront}
+                  className="w-full aspect-[2/3] rounded-xl border-2 border-dashed border-border bg-secondary/30 flex flex-col items-center justify-center gap-2 overflow-hidden hover:border-primary/50 transition-colors"
+                >
+                  {frontImage ? (
+                    <img 
+                      src={frontImage} 
+                      alt="Front" 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <>
+                      <Camera className="w-8 h-8 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Fota</span>
+                    </>
+                  )}
+                </button>
+                {frontImage && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full mt-2"
+                    onClick={() => setFrontImage(null)}
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Ta om
+                  </Button>
+                )}
+              </div>
+
+              {/* Back image */}
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Baksida</p>
+                <button
+                  onClick={handleCaptureBack}
+                  className="w-full aspect-[2/3] rounded-xl border-2 border-dashed border-border bg-secondary/30 flex flex-col items-center justify-center gap-2 overflow-hidden hover:border-primary/50 transition-colors"
+                >
+                  {backImage ? (
+                    <img 
+                      src={backImage} 
+                      alt="Back" 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <>
+                      <Camera className="w-8 h-8 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Fota</span>
+                    </>
+                  )}
+                </button>
+                {backImage && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full mt-2"
+                    onClick={() => setBackImage(null)}
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Ta om
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setStep('edit-metadata')}
+              >
+                Hoppa över
+              </Button>
+              <Button 
+                className="flex-1" 
+                onClick={handleProcessImages}
+                disabled={isProcessingOcr || (!frontImage && !backImage)}
+              >
+                {isProcessingOcr ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Analyserar...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Analysera
+                  </>
+                )}
+              </Button>
+            </div>
+          </motion.div>
+        );
+
+      case 'edit-metadata':
+        return (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-4"
+          >
+            <h2 className="text-lg font-semibold">Detaljer</h2>
+            
+            <div>
+              <Label htmlFor="title">Titel *</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ange titel"
+                className="mt-1"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="year">År</Label>
+                <Input
+                  id="year"
+                  type="number"
+                  value={year}
+                  onChange={(e) => setYear(e.target.value)}
+                  placeholder="2024"
+                  className="mt-1"
+                />
+              </div>
+              {mediaType === 'series' && (
+                <div>
+                  <Label htmlFor="season">Säsong</Label>
+                  <Input
+                    id="season"
+                    type="number"
+                    value={season}
+                    onChange={(e) => setSeason(e.target.value)}
+                    placeholder="1"
+                    className="mt-1"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="audioInfo">Ljud</Label>
+              <Input
+                id="audioInfo"
+                value={audioInfo}
+                onChange={(e) => setAudioInfo(e.target.value)}
+                placeholder="T.ex. Dolby Atmos, DTS-HD"
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="videoInfo">Bild</Label>
+              <Input
+                id="videoInfo"
+                value={videoInfo}
+                onChange={(e) => setVideoInfo(e.target.value)}
+                placeholder="T.ex. 4K HDR, 1080p"
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="notes">Anteckningar</Label>
+              <Textarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Valfria anteckningar..."
+                className="mt-1"
+                rows={2}
+              />
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  // Skip TMDB and go to confirm
+                  setStep('confirm');
+                }}
+              >
+                Hoppa över TMDB
+              </Button>
+              <Button 
+                className="flex-1" 
+                onClick={() => {
+                  handleSearchTmdb();
+                  setStep('tmdb-match');
+                }}
+                disabled={!title.trim()}
+              >
+                <Search className="w-4 h-4 mr-2" />
+                Sök TMDB
+              </Button>
+            </div>
+          </motion.div>
+        );
+
+      case 'tmdb-match':
+        return (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-4"
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">TMDB-matchning</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSearchTmdb}
+                disabled={isSearchingTmdb}
+              >
+                {isSearchingTmdb ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Search className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+
+            {isSearchingTmdb ? (
+              <div className="py-8 text-center">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+                <p className="text-sm text-muted-foreground mt-2">Söker...</p>
+              </div>
+            ) : tmdbResults.length > 0 ? (
+              <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                {tmdbResults.map((result) => (
+                  <button
+                    key={result.id}
+                    onClick={() => setSelectedTmdb(result)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left ${
+                      selectedTmdb?.id === result.id
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border hover:bg-secondary/50'
+                    }`}
+                  >
+                    {result.posterPath ? (
+                      <img
+                        src={tmdbService.getImageUrl(result.posterPath, 'w92') || ''}
+                        alt={result.title}
+                        className="w-12 h-18 object-cover rounded"
+                      />
+                    ) : (
+                      <div className="w-12 h-18 bg-secondary rounded flex items-center justify-center">
+                        <Film className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{result.title}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {result.releaseDate?.substring(0, 4) || 'Okänt år'}
+                      </p>
+                    </div>
+                    {selectedTmdb?.id === result.id && (
+                      <Check className="w-5 h-5 text-primary" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="py-8 text-center">
+                <p className="text-muted-foreground">Inga träffar hittades</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Du kan fortsätta utan TMDB-matchning
+                </p>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setSelectedTmdb(null);
+                  setStep('confirm');
+                }}
+              >
+                Hoppa över
+              </Button>
+              <Button 
+                className="flex-1" 
+                onClick={() => setStep('confirm')}
+              >
+                Fortsätt
+                <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </motion.div>
+        );
+
+      case 'confirm':
+        return (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-6"
+          >
+            <h2 className="text-lg font-semibold">Bekräfta</h2>
+            
+            <div className="bg-card rounded-xl border border-border p-4 space-y-4">
+              {/* Preview image */}
+              {(frontImage || selectedTmdb?.posterPath) && (
+                <div className="flex justify-center">
+                  <img
+                    src={frontImage || tmdbService.getImageUrl(selectedTmdb?.posterPath || '', 'w185') || ''}
+                    alt={title}
+                    className="w-24 h-36 object-cover rounded-lg"
+                  />
+                </div>
+              )}
+
+              <div className="text-center">
+                <h3 className="font-semibold text-lg">{title}</h3>
+                <p className="text-muted-foreground">
+                  {year}{season && ` • Säsong ${season}`}
+                </p>
+              </div>
+
+              <div className="flex items-center justify-center gap-2">
+                <FormatBadge format={format} size="md" />
+              </div>
+
+              <div className="pt-2 border-t border-border text-sm text-muted-foreground">
+                <p>Bibliotek: {selectedLibrary?.name}</p>
+                {selectedTmdb && <p>TMDB: {selectedTmdb.title}</p>}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setStep('edit-metadata')}
+              >
+                Tillbaka
+              </Button>
+              <Button 
+                className="flex-1" 
+                onClick={handleSave}
+                disabled={isSaving || !title.trim()}
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Sparar...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Spara
+                  </>
+                )}
+              </Button>
+            </div>
+          </motion.div>
+        );
+    }
+  };
+
+  return (
+    <div className="page-container">
+      <PageHeader
+        title="Lägg till"
+        subtitle={selectedLibrary?.name}
+        showBack
+        backPath={selectedLibrary ? `/libraries/${selectedLibrary.libraryId}` : '/libraries'}
+      />
+
+      {/* Progress indicator */}
+      <div className="px-4 py-3">
+        <div className="flex items-center gap-2">
+          {['select-library', 'select-type', 'capture-images', 'edit-metadata', 'confirm'].map((s, i) => {
+            const steps = ['select-library', 'select-type', 'capture-images', 'edit-metadata', 'tmdb-match', 'confirm'];
+            const currentIndex = steps.indexOf(step);
+            const thisIndex = i;
+            const isActive = thisIndex <= currentIndex;
+            
+            return (
+              <div
+                key={s}
+                className={`flex-1 h-1 rounded-full transition-colors ${
+                  isActive ? 'bg-primary' : 'bg-secondary'
+                }`}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="px-4 py-4">
+        <AnimatePresence mode="wait">
+          {renderStep()}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
