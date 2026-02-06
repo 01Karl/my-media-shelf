@@ -15,6 +15,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -69,6 +79,10 @@ export default function AddItemPage() {
   // TMDB
   const [tmdbResults, setTmdbResults] = useState<TMDBSearchResult[]>([]);
   const [selectedTmdb, setSelectedTmdb] = useState<TMDBSearchResult | null>(null);
+
+  const [showMergeDialog, setShowMergeDialog] = useState(false);
+  const [mergeFormats, setMergeFormats] = useState<string>('');
+  const [pendingSave, setPendingSave] = useState<(() => Promise<void>) | null>(null);
   const [isSearchingTmdb, setIsSearchingTmdb] = useState(false);
   
   const [isSaving, setIsSaving] = useState(false);
@@ -150,11 +164,11 @@ export default function AddItemPage() {
   };
 
   // Save item
-  const handleSave = async () => {
+  const performSave = async () => {
     if (!selectedLibrary || !currentOwner || !title.trim()) return;
-    
+
     setIsSaving(true);
-    
+
     try {
       const existingItems = selectedTmdb?.id
         ? (await itemRepository.getByTmdbId(selectedTmdb.id)).filter(
@@ -228,6 +242,33 @@ export default function AddItemPage() {
     }
   };
 
+  const handleSave = async () => {
+    if (!selectedLibrary || !currentOwner || !title.trim()) return;
+
+    const existingItems = selectedTmdb?.id
+      ? (await itemRepository.getByTmdbId(selectedTmdb.id)).filter(
+          (item) =>
+            item.libraryId === selectedLibrary.libraryId &&
+            item.type === mediaType &&
+            item.season === (season ? parseInt(season) : undefined)
+        )
+      : (await itemRepository.search(title.trim(), selectedLibrary.libraryId)).filter(
+          (item) =>
+            item.type === mediaType &&
+            item.season === (season ? parseInt(season) : undefined) &&
+            item.year === (year ? parseInt(year) : undefined)
+        );
+
+    if (existingItems.length > 0) {
+      const existingFormats = existingItems.map((item) => item.format).join(', ');
+      setMergeFormats(existingFormats);
+      setPendingSave(() => performSave);
+      setShowMergeDialog(true);
+      return;
+    }
+
+    await performSave();
+  };
   const renderStep = () => {
     switch (step) {
       case 'select-library':
@@ -718,6 +759,40 @@ export default function AddItemPage() {
 
   return (
     <div className="page-container">
+      <AlertDialog
+        open={showMergeDialog}
+        onOpenChange={(open) => {
+          setShowMergeDialog(open);
+          if (!open) {
+            setPendingSave(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Skapa en extra kopia?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Den här titeln finns redan i biblioteket ({mergeFormats}). Vill du lägga till denna version också?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                setShowMergeDialog(false);
+                const save = pendingSave;
+                setPendingSave(null);
+                if (save) {
+                  await save();
+                }
+              }}
+            >
+              Lägg till version
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <PageHeader
         title="Lägg till"
         subtitle={selectedLibrary?.name}
