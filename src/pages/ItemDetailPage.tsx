@@ -31,7 +31,7 @@ export default function ItemDetailPage() {
   const [owner, setOwner] = useState<Owner | null>(null);
   const [frontImageUrl, setFrontImageUrl] = useState<string | null>(null);
   const [backImageUrl, setBackImageUrl] = useState<string | null>(null);
-  const [activeImage, setActiveImage] = useState<'front' | 'back'>('front');
+  const [activeImage, setActiveImage] = useState<'front' | 'back' | 'poster'>('front');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -39,6 +39,27 @@ export default function ItemDetailPage() {
       loadItem();
     }
   }, [itemId]);
+
+  const posterUrl = tmdbData?.posterPath 
+    ? tmdbService.getImageUrl(tmdbData.posterPath, 'w500')
+    : null;
+  const backdropUrl = tmdbData?.backdropPath
+    ? tmdbService.getImageUrl(tmdbData.backdropPath, 'w780')
+    : null;
+
+  useEffect(() => {
+    if (posterUrl) {
+      setActiveImage('poster');
+      return;
+    }
+    if (frontImageUrl) {
+      setActiveImage('front');
+      return;
+    }
+    if (backImageUrl) {
+      setActiveImage('back');
+    }
+  }, [posterUrl, frontImageUrl, backImageUrl]);
 
   const loadItem = async () => {
     if (!itemId) return;
@@ -132,16 +153,12 @@ export default function ItemDetailPage() {
     );
   }
 
-  const posterUrl = tmdbData?.posterPath 
-    ? tmdbService.getImageUrl(tmdbData.posterPath, 'w500')
-    : null;
-  const backdropUrl = tmdbData?.backdropPath
-    ? tmdbService.getImageUrl(tmdbData.backdropPath, 'w780')
-    : null;
-
-  const displayImage = activeImage === 'front' 
-    ? (frontImageUrl || posterUrl) 
-    : backImageUrl;
+  const displayImage = (() => {
+    if (activeImage === 'poster' && posterUrl) return posterUrl;
+    if (activeImage === 'front' && frontImageUrl) return frontImageUrl;
+    if (activeImage === 'back' && backImageUrl) return backImageUrl;
+    return posterUrl || frontImageUrl || backImageUrl;
+  })();
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -208,8 +225,18 @@ export default function ItemDetailPage() {
         </div>
 
         {/* Image selector */}
-        {(frontImageUrl || backImageUrl) && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+        {(frontImageUrl || backImageUrl || posterUrl) && (
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
+            {posterUrl && (
+              <button
+                onClick={() => setActiveImage('poster')}
+                className={`w-12 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                  activeImage === 'poster' ? 'border-primary' : 'border-transparent opacity-60'
+                }`}
+              >
+                <img src={posterUrl} alt="Poster" className="w-full h-full object-cover" />
+              </button>
+            )}
             {frontImageUrl && (
               <button
                 onClick={() => setActiveImage('front')}

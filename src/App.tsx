@@ -2,10 +2,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useAppStore } from "@/stores/appStore";
 import { BottomNav } from "@/components/BottomNav";
+import { App as CapacitorApp } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
 
 // Pages
 import AuthPage from "./pages/AuthPage";
@@ -24,10 +26,28 @@ const queryClient = new QueryClient();
 
 function AppContent() {
   const { isInitialized, isAuthenticated, initialize } = useAppStore();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     initialize();
   }, [initialize]);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const handler = CapacitorApp.addListener("backButton", () => {
+      if (location.pathname !== "/") {
+        navigate(-1);
+      } else {
+        CapacitorApp.exitApp();
+      }
+    });
+
+    return () => {
+      handler.remove();
+    };
+  }, [location.pathname, navigate]);
 
   if (!isInitialized) {
     return (
