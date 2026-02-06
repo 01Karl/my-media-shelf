@@ -40,27 +40,6 @@ export default function ItemDetailPage() {
     }
   }, [itemId]);
 
-  const posterUrl = tmdbData?.posterPath 
-    ? tmdbService.getImageUrl(tmdbData.posterPath, 'w500')
-    : null;
-  const backdropUrl = tmdbData?.backdropPath
-    ? tmdbService.getImageUrl(tmdbData.backdropPath, 'w780')
-    : null;
-
-  useEffect(() => {
-    if (posterUrl) {
-      setActiveImage('poster');
-      return;
-    }
-    if (frontImageUrl) {
-      setActiveImage('front');
-      return;
-    }
-    if (backImageUrl) {
-      setActiveImage('back');
-    }
-  }, [posterUrl, frontImageUrl, backImageUrl]);
-
   const loadItem = async () => {
     if (!itemId) return;
 
@@ -248,23 +227,6 @@ export default function ItemDetailPage() {
         {/* Image selector */}
         {(frontImageUrl || backImageUrl || posterUrl) && (
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
-            {[
-              { key: 'poster', url: posterUrl, label: 'Poster' },
-              { key: 'front', url: frontImageUrl, label: 'Front' },
-              { key: 'back', url: backImageUrl, label: 'Back' },
-            ]
-              .filter((thumb) => Boolean(thumb.url))
-              .map((thumb) => (
-                <button
-                  key={thumb.key}
-                  onClick={() => setActiveImage(thumb.key as 'front' | 'back' | 'poster')}
-                  className={`w-12 h-16 rounded-lg overflow-hidden border-2 transition-all ${
-                    activeImage === thumb.key ? 'border-primary' : 'border-transparent opacity-60'
-                  }`}
-                >
-                  <img src={thumb.url as string} alt={thumb.label} className="w-full h-full object-cover" />
-                </button>
-              ))}
             {posterUrl && (
               <button
                 onClick={() => setActiveImage('poster')}
