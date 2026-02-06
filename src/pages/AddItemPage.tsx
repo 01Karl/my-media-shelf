@@ -156,6 +156,31 @@ export default function AddItemPage() {
     setIsSaving(true);
     
     try {
+      const existingItems = selectedTmdb?.id
+        ? (await itemRepository.getByTmdbId(selectedTmdb.id)).filter(
+            (item) =>
+              item.libraryId === selectedLibrary.libraryId &&
+              item.type === mediaType &&
+              item.season === (season ? parseInt(season) : undefined)
+          )
+        : (await itemRepository.search(title.trim(), selectedLibrary.libraryId)).filter(
+            (item) =>
+              item.type === mediaType &&
+              item.season === (season ? parseInt(season) : undefined) &&
+              item.year === (year ? parseInt(year) : undefined)
+          );
+
+      if (existingItems.length > 0) {
+        const existingFormats = existingItems.map((item) => item.format).join(', ');
+        const confirmMerge = confirm(
+          `Den här titeln finns redan i biblioteket (${existingFormats}). Vill du lägga till denna version också?`
+        );
+        if (!confirmMerge) {
+          setIsSaving(false);
+          return;
+        }
+      }
+
       // Generate item ID first
       const itemId = crypto.randomUUID();
       

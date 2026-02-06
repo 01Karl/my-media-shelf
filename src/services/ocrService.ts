@@ -1,9 +1,29 @@
 // OCR Service - extracts text from images
-// This is a stub implementation. In production, use:
-// - Tesseract.js for web
-// - ML Kit via Capacitor plugin for native
+// Uses Tesseract.js in web environments.
 
 import type { OCRResult } from '@/types';
+
+let workerPromise: Promise<import('tesseract.js').Worker> | null = null;
+const OCR_LANGUAGES = 'swe+eng';
+
+const getWorker = async (): Promise<import('tesseract.js').Worker> => {
+  if (!workerPromise) {
+    workerPromise = (async () => {
+      const { createWorker } = await import('tesseract.js');
+      const worker = await createWorker({
+        logger: (message) => {
+          if (import.meta.env.DEV) {
+            console.debug('OCR:', message);
+          }
+        },
+      });
+      await worker.loadLanguage(OCR_LANGUAGES);
+      await worker.initialize(OCR_LANGUAGES);
+      return worker;
+    })();
+  }
+  return workerPromise;
+};
 
 // Common patterns for extracting metadata from scanned text
 const YEAR_PATTERN = /\b(19|20)\d{2}\b/g;
@@ -87,27 +107,36 @@ function extractVideoInfo(text: string): string | undefined {
 export const ocrService = {
   /**
    * Process an image and extract text
-   * This is a stub that simulates OCR processing
-   * 
-   * TODO: Integrate with Tesseract.js or ML Kit via Capacitor
    */
   async processImage(imageDataUrl: string): Promise<OCRResult> {
-    // Simulate processing delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    if (typeof window === 'undefined') {
+      return {
+        text: '',
+        confidence: 0,
+        suggestedTitle: undefined,
+        suggestedYear: undefined,
+      };
+    }
 
-    // In a real implementation, this would:
-    // 1. Send the image to Tesseract.js worker
-    // 2. Or use Capacitor ML Kit plugin for native OCR
-    
-    console.log('OCR processing image (stub)...');
-    
-    // Return empty result for stub
-    return {
-      text: '',
-      confidence: 0,
-      suggestedTitle: undefined,
-      suggestedYear: undefined,
-    };
+    try {
+      const worker = await getWorker();
+      const { data } = await worker.recognize(imageDataUrl);
+
+      return {
+        text: data.text || '',
+        confidence: data.confidence ?? 0,
+        suggestedTitle: undefined,
+        suggestedYear: undefined,
+      };
+    } catch (error) {
+      console.error('OCR processing failed:', error);
+      return {
+        text: '',
+        confidence: 0,
+        suggestedTitle: undefined,
+        suggestedYear: undefined,
+      };
+    }
   },
 
   /**
@@ -192,8 +221,6 @@ export const ocrService = {
    * Returns true if we have access to OCR functionality
    */
   isAvailable(): boolean {
-    // In stub mode, always return true
-    // In production, check if Tesseract/ML Kit is initialized
-    return true;
+    return typeof window !== 'undefined';
   },
 };
