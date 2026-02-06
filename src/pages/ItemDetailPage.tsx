@@ -139,11 +139,25 @@ export default function ItemDetailPage() {
     ? tmdbService.getImageUrl(tmdbData.backdropPath, 'w780')
     : null;
 
+  useEffect(() => {
+    if (posterUrl) {
+      setActiveImage('poster');
+      return;
+    }
+    if (frontImageUrl) {
+      setActiveImage('front');
+      return;
+    }
+    if (backImageUrl) {
+      setActiveImage('back');
+    }
+  }, [posterUrl, frontImageUrl, backImageUrl]);
+
   const displayImage = (() => {
+    if (activeImage === 'poster' && posterUrl) return posterUrl;
     if (activeImage === 'front' && frontImageUrl) return frontImageUrl;
     if (activeImage === 'back' && backImageUrl) return backImageUrl;
-    if (activeImage === 'poster' && posterUrl) return posterUrl;
-    return frontImageUrl || posterUrl || backImageUrl;
+    return posterUrl || frontImageUrl || backImageUrl;
   })();
 
   return (
@@ -212,7 +226,17 @@ export default function ItemDetailPage() {
 
         {/* Image selector */}
         {(frontImageUrl || backImageUrl || posterUrl) && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
+            {posterUrl && (
+              <button
+                onClick={() => setActiveImage('poster')}
+                className={`w-12 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                  activeImage === 'poster' ? 'border-primary' : 'border-transparent opacity-60'
+                }`}
+              >
+                <img src={posterUrl} alt="Poster" className="w-full h-full object-cover" />
+              </button>
+            )}
             {frontImageUrl && (
               <button
                 onClick={() => setActiveImage('front')}
