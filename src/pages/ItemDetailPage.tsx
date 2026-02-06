@@ -247,6 +247,16 @@ export default function ItemDetailPage() {
                 <img src={frontImageUrl} alt="Front" className="w-full h-full object-cover" />
               </button>
             )}
+            {posterUrl && (
+              <button
+                onClick={() => setActiveImage('poster')}
+                className={`w-12 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                  activeImage === 'poster' ? 'border-primary' : 'border-transparent opacity-60'
+                }`}
+              >
+                <img src={posterUrl} alt="Poster" className="w-full h-full object-cover" />
+              </button>
+            )}
             {backImageUrl && (
               <button
                 onClick={() => setActiveImage('back')}
