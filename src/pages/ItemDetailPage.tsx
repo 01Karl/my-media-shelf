@@ -40,6 +40,27 @@ export default function ItemDetailPage() {
     }
   }, [itemId]);
 
+  const posterUrl = tmdbData?.posterPath 
+    ? tmdbService.getImageUrl(tmdbData.posterPath, 'w500')
+    : null;
+  const backdropUrl = tmdbData?.backdropPath
+    ? tmdbService.getImageUrl(tmdbData.backdropPath, 'w780')
+    : null;
+
+  useEffect(() => {
+    if (posterUrl) {
+      setActiveImage('poster');
+      return;
+    }
+    if (frontImageUrl) {
+      setActiveImage('front');
+      return;
+    }
+    if (backImageUrl) {
+      setActiveImage('back');
+    }
+  }, [posterUrl, frontImageUrl, backImageUrl]);
+
   const loadItem = async () => {
     if (!itemId) return;
 
