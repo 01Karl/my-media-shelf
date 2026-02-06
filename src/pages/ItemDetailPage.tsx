@@ -31,7 +31,7 @@ export default function ItemDetailPage() {
   const [owner, setOwner] = useState<Owner | null>(null);
   const [frontImageUrl, setFrontImageUrl] = useState<string | null>(null);
   const [backImageUrl, setBackImageUrl] = useState<string | null>(null);
-  const [activeImage, setActiveImage] = useState<'front' | 'back'>('front');
+  const [activeImage, setActiveImage] = useState<'front' | 'back' | 'poster'>('front');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -39,6 +39,27 @@ export default function ItemDetailPage() {
       loadItem();
     }
   }, [itemId]);
+
+  const posterUrl = tmdbData?.posterPath 
+    ? tmdbService.getImageUrl(tmdbData.posterPath, 'w500')
+    : null;
+  const backdropUrl = tmdbData?.backdropPath
+    ? tmdbService.getImageUrl(tmdbData.backdropPath, 'w780')
+    : null;
+
+  useEffect(() => {
+    if (posterUrl) {
+      setActiveImage('poster');
+      return;
+    }
+    if (frontImageUrl) {
+      setActiveImage('front');
+      return;
+    }
+    if (backImageUrl) {
+      setActiveImage('back');
+    }
+  }, [posterUrl, frontImageUrl, backImageUrl]);
 
   const loadItem = async () => {
     if (!itemId) return;
@@ -132,16 +153,12 @@ export default function ItemDetailPage() {
     );
   }
 
-  const posterUrl = tmdbData?.posterPath 
-    ? tmdbService.getImageUrl(tmdbData.posterPath, 'w500')
-    : null;
-  const backdropUrl = tmdbData?.backdropPath
-    ? tmdbService.getImageUrl(tmdbData.backdropPath, 'w780')
-    : null;
-
-  const displayImage = activeImage === 'front' 
-    ? (frontImageUrl || posterUrl) 
-    : backImageUrl;
+  const displayImage = (() => {
+    if (activeImage === 'poster' && posterUrl) return posterUrl;
+    if (activeImage === 'front' && frontImageUrl) return frontImageUrl;
+    if (activeImage === 'back' && backImageUrl) return backImageUrl;
+    return posterUrl || frontImageUrl || backImageUrl;
+  })();
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -208,28 +225,25 @@ export default function ItemDetailPage() {
         </div>
 
         {/* Image selector */}
-        {(frontImageUrl || backImageUrl) && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-            {frontImageUrl && (
-              <button
-                onClick={() => setActiveImage('front')}
-                className={`w-12 h-16 rounded-lg overflow-hidden border-2 transition-all ${
-                  activeImage === 'front' ? 'border-primary' : 'border-transparent opacity-60'
-                }`}
-              >
-                <img src={frontImageUrl} alt="Front" className="w-full h-full object-cover" />
-              </button>
-            )}
-            {backImageUrl && (
-              <button
-                onClick={() => setActiveImage('back')}
-                className={`w-12 h-16 rounded-lg overflow-hidden border-2 transition-all ${
-                  activeImage === 'back' ? 'border-primary' : 'border-transparent opacity-60'
-                }`}
-              >
-                <img src={backImageUrl} alt="Back" className="w-full h-full object-cover" />
-              </button>
-            )}
+        {(frontImageUrl || backImageUrl || posterUrl) && (
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
+            {[
+              { key: 'poster', url: posterUrl, label: 'Poster' },
+              { key: 'front', url: frontImageUrl, label: 'Front' },
+              { key: 'back', url: backImageUrl, label: 'Back' },
+            ]
+              .filter((thumb) => Boolean(thumb.url))
+              .map((thumb) => (
+                <button
+                  key={thumb.key}
+                  onClick={() => setActiveImage(thumb.key as 'front' | 'back' | 'poster')}
+                  className={`w-12 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                    activeImage === thumb.key ? 'border-primary' : 'border-transparent opacity-60'
+                  }`}
+                >
+                  <img src={thumb.url as string} alt={thumb.label} className="w-full h-full object-cover" />
+                </button>
+              ))}
           </div>
         )}
       </div>

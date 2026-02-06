@@ -7,14 +7,45 @@ import type { MediaType, TMDBData, TMDBSearchResult } from '@/types';
 const TMDB_API_BASE = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p';
 
-// Get API key from environment
+const FALLBACK_API_KEY = '';
+const PREFERRED_LANGUAGE = 'sv-SE';
+const FALLBACK_LANGUAGE = 'en-US';
+
+// Get API key from environment or fallback constant
 const getApiKey = (): string | null => {
-  return import.meta.env.VITE_TMDB_API_KEY || null;
+  return import.meta.env.VITE_TMDB_API_KEY || FALLBACK_API_KEY || null;
 };
 
 // Check if we're online
 const isOnline = (): boolean => {
   return navigator.onLine;
+};
+
+const normalizeMovie = (movie: any): TMDBSearchResult => ({
+  id: movie.id,
+  title: movie.title,
+  originalTitle: movie.original_title,
+  overview: movie.overview,
+  posterPath: movie.poster_path,
+  releaseDate: movie.release_date,
+  mediaType: 'movie' as MediaType,
+});
+
+const normalizeSeries = (series: any): TMDBSearchResult => ({
+  id: series.id,
+  title: series.name,
+  originalTitle: series.original_name,
+  overview: series.overview,
+  posterPath: series.poster_path,
+  releaseDate: series.first_air_date,
+  mediaType: 'series' as MediaType,
+});
+
+const needsEnglishFallback = (data: { title?: string; overview?: string } | null): boolean => {
+  if (!data) return true;
+  const hasTitle = data.title && data.title.trim().length > 0;
+  const hasOverview = data.overview && data.overview.trim().length > 0;
+  return !hasTitle || !hasOverview;
 };
 
 export const tmdbService = {
@@ -33,30 +64,30 @@ export const tmdbService = {
     }
 
     try {
-      const params = new URLSearchParams({
-        api_key: apiKey,
-        query,
-        ...(year && { year: year.toString() }),
-      });
+      const searchWithLanguage = async (language: string) => {
+        const params = new URLSearchParams({
+          api_key: apiKey,
+          query,
+          language,
+          ...(year && { year: year.toString() }),
+        });
 
-      const response = await fetch(`${TMDB_API_BASE}/search/movie?${params}`);
-      
-      if (!response.ok) {
-        console.error('TMDB search failed:', response.status);
-        return [];
+        const response = await fetch(`${TMDB_API_BASE}/search/movie?${params}`);
+        if (!response.ok) {
+          console.error('TMDB search failed:', response.status);
+          return [];
+        }
+
+        const data = await response.json();
+        return data.results.map((movie: any) => normalizeMovie(movie));
+      };
+
+      const swedishResults = await searchWithLanguage(PREFERRED_LANGUAGE);
+      if (swedishResults.length > 0) {
+        return swedishResults;
       }
 
-      const data = await response.json();
-      
-      return data.results.map((movie: any) => ({
-        id: movie.id,
-        title: movie.title,
-        originalTitle: movie.original_title,
-        overview: movie.overview,
-        posterPath: movie.poster_path,
-        releaseDate: movie.release_date,
-        mediaType: 'movie' as MediaType,
-      }));
+      return await searchWithLanguage(FALLBACK_LANGUAGE);
     } catch (error) {
       console.error('TMDB search error:', error);
       return [];
@@ -71,29 +102,29 @@ export const tmdbService = {
     }
 
     try {
-      const params = new URLSearchParams({
-        api_key: apiKey,
-        query,
-        ...(year && { first_air_date_year: year.toString() }),
-      });
+      const searchWithLanguage = async (language: string) => {
+        const params = new URLSearchParams({
+          api_key: apiKey,
+          query,
+          language,
+          ...(year && { first_air_date_year: year.toString() }),
+        });
 
-      const response = await fetch(`${TMDB_API_BASE}/search/tv?${params}`);
-      
-      if (!response.ok) {
-        return [];
+        const response = await fetch(`${TMDB_API_BASE}/search/tv?${params}`);
+        if (!response.ok) {
+          return [];
+        }
+
+        const data = await response.json();
+        return data.results.map((series: any) => normalizeSeries(series));
+      };
+
+      const swedishResults = await searchWithLanguage(PREFERRED_LANGUAGE);
+      if (swedishResults.length > 0) {
+        return swedishResults;
       }
 
-      const data = await response.json();
-      
-      return data.results.map((series: any) => ({
-        id: series.id,
-        title: series.name,
-        originalTitle: series.original_name,
-        overview: series.overview,
-        posterPath: series.poster_path,
-        releaseDate: series.first_air_date,
-        mediaType: 'series' as MediaType,
-      }));
+      return await searchWithLanguage(FALLBACK_LANGUAGE);
     } catch (error) {
       console.error('TMDB search error:', error);
       return [];
@@ -124,27 +155,37 @@ export const tmdbService = {
     }
 
     try {
-      const response = await fetch(
-        `${TMDB_API_BASE}/movie/${tmdbId}?api_key=${apiKey}`
-      );
-      
-      if (!response.ok) {
+      const fetchMovie = async (language: string) => {
+        const response = await fetch(
+          `${TMDB_API_BASE}/movie/${tmdbId}?api_key=${apiKey}&language=${language}`
+        );
+        if (!response.ok) {
+          return null;
+        }
+        return response.json();
+      };
+
+      const movie = await fetchMovie(PREFERRED_LANGUAGE);
+      if (!movie) {
         return null;
       }
 
-      const movie = await response.json();
-      
+      let fallbackMovie: any | null = null;
+      if (needsEnglishFallback({ title: movie.title, overview: movie.overview })) {
+        fallbackMovie = await fetchMovie(FALLBACK_LANGUAGE);
+      }
+
       const data: TMDBData = {
         id: movie.id,
-        title: movie.title,
-        originalTitle: movie.original_title,
-        overview: movie.overview,
-        posterPath: movie.poster_path,
-        backdropPath: movie.backdrop_path,
-        releaseDate: movie.release_date,
-        voteAverage: movie.vote_average,
-        genres: movie.genres?.map((g: any) => g.name),
-        runtime: movie.runtime,
+        title: movie.title || fallbackMovie?.title,
+        originalTitle: movie.original_title || fallbackMovie?.original_title,
+        overview: movie.overview || fallbackMovie?.overview,
+        posterPath: movie.poster_path || fallbackMovie?.poster_path,
+        backdropPath: movie.backdrop_path || fallbackMovie?.backdrop_path,
+        releaseDate: movie.release_date || fallbackMovie?.release_date,
+        voteAverage: movie.vote_average ?? fallbackMovie?.vote_average,
+        genres: movie.genres?.map((g: any) => g.name) ?? fallbackMovie?.genres?.map((g: any) => g.name),
+        runtime: movie.runtime ?? fallbackMovie?.runtime,
       };
 
       // Cache the result
@@ -171,27 +212,37 @@ export const tmdbService = {
     }
 
     try {
-      const response = await fetch(
-        `${TMDB_API_BASE}/tv/${tmdbId}?api_key=${apiKey}`
-      );
-      
-      if (!response.ok) {
+      const fetchSeries = async (language: string) => {
+        const response = await fetch(
+          `${TMDB_API_BASE}/tv/${tmdbId}?api_key=${apiKey}&language=${language}`
+        );
+        if (!response.ok) {
+          return null;
+        }
+        return response.json();
+      };
+
+      const series = await fetchSeries(PREFERRED_LANGUAGE);
+      if (!series) {
         return null;
       }
 
-      const series = await response.json();
-      
+      let fallbackSeries: any | null = null;
+      if (needsEnglishFallback({ title: series.name, overview: series.overview })) {
+        fallbackSeries = await fetchSeries(FALLBACK_LANGUAGE);
+      }
+
       const data: TMDBData = {
         id: series.id,
-        title: series.name,
-        originalTitle: series.original_name,
-        overview: series.overview,
-        posterPath: series.poster_path,
-        backdropPath: series.backdrop_path,
-        releaseDate: series.first_air_date,
-        voteAverage: series.vote_average,
-        genres: series.genres?.map((g: any) => g.name),
-        numberOfSeasons: series.number_of_seasons,
+        title: series.name || fallbackSeries?.name,
+        originalTitle: series.original_name || fallbackSeries?.original_name,
+        overview: series.overview || fallbackSeries?.overview,
+        posterPath: series.poster_path || fallbackSeries?.poster_path,
+        backdropPath: series.backdrop_path || fallbackSeries?.backdrop_path,
+        releaseDate: series.first_air_date || fallbackSeries?.first_air_date,
+        voteAverage: series.vote_average ?? fallbackSeries?.vote_average,
+        genres: series.genres?.map((g: any) => g.name) ?? fallbackSeries?.genres?.map((g: any) => g.name),
+        numberOfSeasons: series.number_of_seasons ?? fallbackSeries?.number_of_seasons,
       };
 
       // Cache the result
