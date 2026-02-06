@@ -153,6 +153,27 @@ export default function ItemDetailPage() {
     );
   }
 
+  const posterUrl = tmdbData?.posterPath 
+    ? tmdbService.getImageUrl(tmdbData.posterPath, 'w500')
+    : null;
+  const backdropUrl = tmdbData?.backdropPath
+    ? tmdbService.getImageUrl(tmdbData.backdropPath, 'w780')
+    : null;
+
+  useEffect(() => {
+    if (posterUrl) {
+      setActiveImage('poster');
+      return;
+    }
+    if (frontImageUrl) {
+      setActiveImage('front');
+      return;
+    }
+    if (backImageUrl) {
+      setActiveImage('back');
+    }
+  }, [posterUrl, frontImageUrl, backImageUrl]);
+
   const displayImage = (() => {
     if (activeImage === 'poster' && posterUrl) return posterUrl;
     if (activeImage === 'front' && frontImageUrl) return frontImageUrl;
@@ -244,6 +265,46 @@ export default function ItemDetailPage() {
                   <img src={thumb.url as string} alt={thumb.label} className="w-full h-full object-cover" />
                 </button>
               ))}
+            {posterUrl && (
+              <button
+                onClick={() => setActiveImage('poster')}
+                className={`w-12 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                  activeImage === 'poster' ? 'border-primary' : 'border-transparent opacity-60'
+                }`}
+              >
+                <img src={posterUrl} alt="Poster" className="w-full h-full object-cover" />
+              </button>
+            )}
+            {frontImageUrl && (
+              <button
+                onClick={() => setActiveImage('front')}
+                className={`w-12 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                  activeImage === 'front' ? 'border-primary' : 'border-transparent opacity-60'
+                }`}
+              >
+                <img src={frontImageUrl} alt="Front" className="w-full h-full object-cover" />
+              </button>
+            )}
+            {posterUrl && (
+              <button
+                onClick={() => setActiveImage('poster')}
+                className={`w-12 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                  activeImage === 'poster' ? 'border-primary' : 'border-transparent opacity-60'
+                }`}
+              >
+                <img src={posterUrl} alt="Poster" className="w-full h-full object-cover" />
+              </button>
+            )}
+            {backImageUrl && (
+              <button
+                onClick={() => setActiveImage('back')}
+                className={`w-12 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                  activeImage === 'back' ? 'border-primary' : 'border-transparent opacity-60'
+                }`}
+              >
+                <img src={backImageUrl} alt="Back" className="w-full h-full object-cover" />
+              </button>
+            )}
           </div>
         )}
       </div>
