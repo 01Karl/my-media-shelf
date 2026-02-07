@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Owner, Library, MediaItem } from '@/types';
 import { initDatabase, ownerRepository, getSetting, setSetting } from '@/db';
+import { runOneTimeSeriesImport } from '@/services/oneTimeSeriesImport';
 
 interface AppState {
   // Auth state
@@ -53,6 +54,7 @@ export const useAppStore = create<AppState>()(
                   isAuthenticated: true, 
                   currentOwner: owner 
                 });
+                await runOneTimeSeriesImport(owner.ownerId);
                 return;
               }
               // Otherwise, require PIN
@@ -94,6 +96,7 @@ export const useAppStore = create<AppState>()(
         await setSetting('currentOwnerId', ownerId);
         
         set({ isAuthenticated: true, currentOwner: owner });
+        await runOneTimeSeriesImport(ownerId);
         return true;
       },
 
@@ -105,6 +108,7 @@ export const useAppStore = create<AppState>()(
         const owner = await ownerRepository.create(displayName, pin);
         await setSetting('currentOwnerId', owner.ownerId);
         set({ isAuthenticated: true, currentOwner: owner });
+        await runOneTimeSeriesImport(owner.ownerId);
         return owner;
       },
 
