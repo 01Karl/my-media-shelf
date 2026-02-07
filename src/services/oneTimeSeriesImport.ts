@@ -11,7 +11,7 @@ const MOVIES_IMPORT_SETTING_KEY = 'import:movies:gemensamt';
 const TMDB_ENRICH_SETTING_KEY = 'import:tmdb:gemensamt';
 const TARGET_LIBRARY_NAME = 'Gemensamt';
 
-const SERIES_CSV = `"title","sound","resolution"
+const SERIES_CSV = `"title","season","sound","resolution"
 "30 dagar i f?ngelse","AAC","1920x1080"
 "99 Saker Man M?ste G?ra Innan Man D?r (2011)","AAC","716x404"
 "Avatar - The Legend of Korra (2012)","AC-3","1920x1080"
@@ -352,8 +352,8 @@ function normalizeTitle(title: string): string {
     .replace(/\s+/g, ' ');
 }
 
-function createLookupKey(title: string, type: MediaType, year?: number): string {
-  return `${normalizeTitle(title)}|${type}|${year ?? 'unknown'}`;
+function createLookupKey(title: string, type: MediaType, year?: number, season?: number): string {
+  return `${normalizeTitle(title)}|${type}|${year ?? 'unknown'}|${season ?? 0}`;
 }
 
 function normalizeResolution(resolution?: string): string | undefined {
@@ -363,6 +363,13 @@ function normalizeResolution(resolution?: string): string | undefined {
   if (trimmed === '1920x1080') return '1080p';
   if (trimmed === '3840x2160') return '4K';
   return trimmed;
+}
+
+function parseSeasonValue(value?: string): number | undefined {
+  if (!value) return undefined;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return undefined;
+  return parsed;
 }
 
 async function getOrCreateGemensamtLibrary(ownerId: string): Promise<Library> {
@@ -480,9 +487,12 @@ async function importFromCsv(options: {
       );
       imported += 1;
     } else {
-      const [rawTitle, sound, resolution] = row;
+      const [rawTitle, columnTwo, columnThree, columnFour] = row;
       if (!rawTitle) continue;
 
+      const season = row.length >= 4 ? parseSeasonValue(columnTwo) : undefined;
+      const sound = row.length >= 4 ? columnThree : columnTwo;
+      const resolution = row.length >= 4 ? columnFour : columnThree;
       const { cleanTitle, year } = parseTitle(rawTitle);
       const tmdbId = shouldUseTmdb
         ? await lookupTmdbId(cleanTitle, options.type, year)
@@ -495,6 +505,7 @@ async function importFromCsv(options: {
           title: cleanTitle,
           format: options.defaultFormat,
           year,
+          season,
           tmdbId: tmdbId ?? undefined,
           audioInfo: sound || undefined,
           videoInfo: normalizeResolution(resolution),
@@ -541,24 +552,41 @@ async function enrichTmdbForLibrary(options: {
   const items = await itemRepository.getByLibrary(options.libraryId);
   const itemsByKey = new Map(
     items.map(item => [
-      createLookupKey(item.title, item.type, item.year),
+      createLookupKey(item.title, item.type, item.year, item.season),
       item,
     ])
   );
 
-  const allRows = [...parseCsvRows(SERIES_CSV), ...parseCsvRows(MOVIES_CSV)].slice(1);
-  for (const row of allRows) {
+  const seriesRows = parseCsvRows(SERIES_CSV).slice(1);
+  for (const row of seriesRows) {
+    const [rawTitle, columnTwo] = row;
+    if (!rawTitle) continue;
+
+    const season = row.length >= 4 ? parseSeasonValue(columnTwo) : undefined;
+    const { cleanTitle, year } = parseTitle(rawTitle);
+    const key = createLookupKey(cleanTitle, 'series', year, season);
+    const existing = itemsByKey.get(key);
+    if (!existing || existing.tmdbId) continue;
+
+    const tmdbId = await lookupTmdbId(cleanTitle, 'series', year);
+    if (!tmdbId) continue;
+
+    await itemRepository.update(existing.itemId, { tmdbId });
+    await sleep(options.delayMs);
+  }
+
+  const movieRows = parseCsvRows(MOVIES_CSV).slice(1);
+  for (const row of movieRows) {
     const [rawTitle, maybeYear] = row;
     if (!rawTitle) continue;
 
     const { cleanTitle, year: parsedYear } = parseTitle(rawTitle);
     const year = Number.isFinite(Number(maybeYear)) ? Number(maybeYear) : parsedYear;
-    const type: MediaType = row.length === 4 ? 'movie' : 'series';
-    const key = createLookupKey(cleanTitle, type, year);
+    const key = createLookupKey(cleanTitle, 'movie', year);
     const existing = itemsByKey.get(key);
     if (!existing || existing.tmdbId) continue;
 
-    const tmdbId = await lookupTmdbId(cleanTitle, type, year);
+    const tmdbId = await lookupTmdbId(cleanTitle, 'movie', year);
     if (!tmdbId) continue;
 
     await itemRepository.update(existing.itemId, { tmdbId });
