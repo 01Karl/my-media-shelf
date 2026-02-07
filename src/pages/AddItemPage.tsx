@@ -150,31 +150,16 @@ export default function AddItemPage() {
         audio: false,
       });
       liveStreamRef.current = stream;
+      if (liveVideoRef.current) {
+        liveVideoRef.current.srcObject = stream;
+        await liveVideoRef.current.play();
+      }
       setIsLiveCameraActive(true);
     } catch (error) {
       console.error('Failed to start live camera:', error);
       setCameraError('Kameran kunde inte startas. Kontrollera behörigheter.');
     }
   };
-
-  useEffect(() => {
-    const video = liveVideoRef.current;
-    const stream = liveStreamRef.current;
-
-    if (!video || !stream || !isLiveCameraActive) return;
-
-    const attachStream = async () => {
-      try {
-        video.srcObject = stream;
-        await video.play();
-      } catch (error) {
-        console.error('Failed to attach live camera:', error);
-        setCameraError('Kameran kunde inte startas. Kontrollera behörigheter.');
-      }
-    };
-
-    void attachStream();
-  }, [isLiveCameraActive]);
 
   useEffect(() => {
     if (step !== 'capture-images') {
@@ -479,7 +464,6 @@ export default function AddItemPage() {
                   <video
                     ref={liveVideoRef}
                     className="w-full aspect-video object-cover"
-                    autoPlay
                     muted
                     playsInline
                   />
