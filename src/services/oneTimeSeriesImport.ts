@@ -302,7 +302,7 @@ async function enrichTmdbForLibrary(options: {
     ])
   );
 
-  const seriesRows = parseCsvRows(options.seriesCsv).slice(1);
+  const seriesRows = parseCsvRows(SERIES_CSV).slice(1);
   for (const row of seriesRows) {
     const [rawTitle, columnTwo] = row;
     if (!rawTitle) continue;
@@ -320,7 +320,7 @@ async function enrichTmdbForLibrary(options: {
     await sleep(options.delayMs);
   }
 
-  const movieRows = parseCsvRows(options.moviesCsv).slice(1);
+  const movieRows = parseCsvRows(MOVIES_CSV).slice(1);
   for (const row of movieRows) {
     const [rawTitle, maybeYear] = row;
     if (!rawTitle) continue;
