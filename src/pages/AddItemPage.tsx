@@ -1,6 +1,6 @@
 // Add item page - multi-step flow for adding media items
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -34,9 +34,16 @@ import {
 import { useAppStore } from '@/stores/appStore';
 import { libraryRepository, itemRepository } from '@/db';
 import { cameraService, ocrService, tmdbService, storageService } from '@/services';
-import type { Library, MediaType, MediaFormat, TMDBSearchResult } from '@/types';
+import type { Library, MediaType, MediaFormat, MediaItem, TMDBSearchResult } from '@/types';
 
-type Step = 'select-library' | 'select-type' | 'capture-images' | 'edit-metadata' | 'tmdb-match' | 'confirm';
+type Step =
+  | 'select-library'
+  | 'select-type'
+  | 'capture-images'
+  | 'scan-check'
+  | 'edit-metadata'
+  | 'tmdb-match'
+  | 'confirm';
 
 const MEDIA_FORMATS: { value: MediaFormat; label: string }[] = [
   { value: 'DVD', label: 'DVD' },
@@ -67,6 +74,12 @@ export default function AddItemPage() {
   const [frontImage, setFrontImage] = useState<string | null>(null);
   const [backImage, setBackImage] = useState<string | null>(null);
   const [isProcessingOcr, setIsProcessingOcr] = useState(false);
+  const [isCheckingLibrary, setIsCheckingLibrary] = useState(false);
+  const [scanMatches, setScanMatches] = useState<MediaItem[]>([]);
+  const [isLiveCameraActive, setIsLiveCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const liveVideoRef = useRef<HTMLVideoElement | null>(null);
+  const liveStreamRef = useRef<MediaStream | null>(null);
   
   // Metadata
   const [title, setTitle] = useState('');
@@ -123,6 +136,39 @@ export default function AddItemPage() {
     }
   };
 
+  const stopLiveCamera = () => {
+    liveStreamRef.current?.getTracks().forEach((track) => track.stop());
+    liveStreamRef.current = null;
+    setIsLiveCameraActive(false);
+  };
+
+  const startLiveCamera = async () => {
+    try {
+      setCameraError(null);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false,
+      });
+      liveStreamRef.current = stream;
+      if (liveVideoRef.current) {
+        liveVideoRef.current.srcObject = stream;
+        await liveVideoRef.current.play();
+      }
+      setIsLiveCameraActive(true);
+    } catch (error) {
+      console.error('Failed to start live camera:', error);
+      setCameraError('Kameran kunde inte startas. Kontrollera behörigheter.');
+    }
+  };
+
+  useEffect(() => {
+    if (step !== 'capture-images') {
+      stopLiveCamera();
+    }
+
+    return () => stopLiveCamera();
+  }, [step]);
+
   // Process OCR and proceed
   const handleProcessImages = async () => {
     setIsProcessingOcr(true);
@@ -132,14 +178,39 @@ export default function AddItemPage() {
         frontImage || undefined,
         backImage || undefined
       );
-      
+
+      const nextTitle = ocrResults.suggestedTitle?.trim() || title;
+      const nextYear = ocrResults.suggestedYear ? ocrResults.suggestedYear.toString() : year;
+      const nextSeason = ocrResults.suggestedSeason ? ocrResults.suggestedSeason.toString() : season;
+
       if (ocrResults.suggestedTitle) setTitle(ocrResults.suggestedTitle);
       if (ocrResults.suggestedYear) setYear(ocrResults.suggestedYear.toString());
       if (ocrResults.suggestedSeason) setSeason(ocrResults.suggestedSeason.toString());
       if (ocrResults.audioInfo) setAudioInfo(ocrResults.audioInfo);
       if (ocrResults.videoInfo) setVideoInfo(ocrResults.videoInfo);
+
+      if (selectedLibrary && nextTitle.trim()) {
+        setIsCheckingLibrary(true);
+        const results = await itemRepository.search(nextTitle.trim(), selectedLibrary.libraryId);
+        const filteredResults = results.filter((item) => {
+          const seasonValue = nextSeason ? parseInt(nextSeason, 10) : undefined;
+          const yearValue = nextYear ? parseInt(nextYear, 10) : undefined;
+
+          return (
+            item.type === mediaType &&
+            item.season === seasonValue &&
+            (yearValue ? item.year === yearValue : true)
+          );
+        });
+        setScanMatches(filteredResults);
+        setIsCheckingLibrary(false);
+        setStep('scan-check');
+        setIsProcessingOcr(false);
+        return;
+      }
     } catch (error) {
       console.error('OCR failed:', error);
+      setIsCheckingLibrary(false);
     }
     
     setIsProcessingOcr(false);
@@ -386,6 +457,58 @@ export default function AddItemPage() {
             className="space-y-6"
           >
             <h2 className="text-lg font-semibold">Fota omslaget</h2>
+
+            <div className="space-y-3">
+              <div className="rounded-xl border border-border bg-card overflow-hidden">
+                {isLiveCameraActive ? (
+                  <video
+                    ref={liveVideoRef}
+                    className="w-full aspect-video object-cover"
+                    muted
+                    playsInline
+                  />
+                ) : (
+                  <div className="w-full aspect-video flex items-center justify-center text-sm text-muted-foreground">
+                    Livekamera är avstängd
+                  </div>
+                )}
+              </div>
+              {cameraError && (
+                <p className="text-sm text-destructive">{cameraError}</p>
+              )}
+              <div className="flex gap-3">
+                {isLiveCameraActive ? (
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={stopLiveCamera}
+                  >
+                    Stäng livekamera
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={startLiveCamera}
+                  >
+                    Starta livekamera
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  className="flex-1"
+                  onClick={() => {
+                    setFrontImage(null);
+                    setBackImage(null);
+                  }}
+                >
+                  Rensa bilder
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Livekameran hjälper dig att rikta omslaget innan du tar bilden.
+              </p>
+            </div>
             
             <div className="grid grid-cols-2 gap-4">
               {/* Front image */}
@@ -483,6 +606,101 @@ export default function AddItemPage() {
             </div>
           </motion.div>
         );
+
+      case 'scan-check': {
+        const scanFormatList = Array.from(
+          new Set(scanMatches.map((item) => item.format))
+        ).join(', ');
+
+        return (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-6"
+          >
+            <div>
+              <h2 className="text-lg font-semibold">Snabbkoll i biblioteket</h2>
+              <p className="text-sm text-muted-foreground">
+                Vi försöker matcha omslaget mot ditt bibliotek.
+              </p>
+            </div>
+
+            {isCheckingLibrary ? (
+              <div className="py-10 text-center">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+                <p className="text-sm text-muted-foreground mt-2">Letar efter match...</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-card rounded-xl border border-border p-4">
+                  <p className="text-sm text-muted-foreground">Tolkat från omslag</p>
+                  <p className="text-lg font-semibold">{title || 'Ingen titel hittad ännu'}</p>
+                  {(year || season) && (
+                    <p className="text-sm text-muted-foreground">
+                      {year && `År ${year}`}
+                      {season && ` • Säsong ${season}`}
+                    </p>
+                  )}
+                </div>
+
+                {scanMatches.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+                      <p className="font-medium">
+                        Den här titeln finns redan ({scanFormatList}).
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Vill du lägga till en extra version ändå?
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      {scanMatches.map((item) => (
+                        <div
+                          key={item.itemId}
+                          className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3"
+                        >
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{item.title}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {item.year ?? 'Okänt år'}
+                              {item.season ? ` • Säsong ${item.season}` : ''}
+                            </p>
+                          </div>
+                          <FormatBadge format={item.format} size="sm" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-border bg-card p-4 text-center">
+                    <p className="font-medium">Ingen match hittades.</p>
+                    <p className="text-sm text-muted-foreground">
+                      Vill du lägga till den här titeln?
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setStep('capture-images')}
+              >
+                Fota igen
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={() => setStep('edit-metadata')}
+              >
+                {scanMatches.length > 0 ? 'Lägg till version' : 'Lägg till'}
+              </Button>
+            </div>
+          </motion.div>
+        );
+      }
 
       case 'edit-metadata':
         return (
@@ -803,8 +1021,16 @@ export default function AddItemPage() {
       {/* Progress indicator */}
       <div className="px-4 py-3">
         <div className="flex items-center gap-2">
-          {['select-library', 'select-type', 'capture-images', 'edit-metadata', 'confirm'].map((s, i) => {
-            const steps = ['select-library', 'select-type', 'capture-images', 'edit-metadata', 'tmdb-match', 'confirm'];
+          {['select-library', 'select-type', 'capture-images', 'scan-check', 'edit-metadata', 'confirm'].map((s, i) => {
+            const steps = [
+              'select-library',
+              'select-type',
+              'capture-images',
+              'scan-check',
+              'edit-metadata',
+              'tmdb-match',
+              'confirm',
+            ];
             const currentIndex = steps.indexOf(step);
             const thisIndex = i;
             const isActive = thisIndex <= currentIndex;
