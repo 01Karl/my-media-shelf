@@ -11,6 +11,7 @@ import {
 import { FormatBadge } from '@/components/FormatBadge';
 import { TypeBadge } from '@/components/TypeBadge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +34,9 @@ export default function ItemDetailPage() {
   const [backImageUrl, setBackImageUrl] = useState<string | null>(null);
   const [activeImage, setActiveImage] = useState<'front' | 'back' | 'poster'>('front');
   const [isLoading, setIsLoading] = useState(true);
+  const [tmdbIdInput, setTmdbIdInput] = useState('');
+  const [isTmdbSyncing, setIsTmdbSyncing] = useState(false);
+  const [tmdbSyncError, setTmdbSyncError] = useState<string | null>(null);
 
   useEffect(() => {
     if (itemId) {
@@ -103,6 +107,37 @@ export default function ItemDetailPage() {
       
       await itemRepository.delete(item.itemId);
       navigate(`/libraries/${item.libraryId}`);
+    }
+  };
+
+  const handleTmdbSync = async () => {
+    if (!item) return;
+
+    const parsedId = Number(tmdbIdInput);
+    if (!Number.isFinite(parsedId) || parsedId <= 0) {
+      setTmdbSyncError('Ange ett giltigt TMDB-ID.');
+      return;
+    }
+
+    setIsTmdbSyncing(true);
+    setTmdbSyncError(null);
+
+    try {
+      const updated = await itemRepository.update(item.itemId, { tmdbId: parsedId });
+      if (updated) {
+        setItem(updated);
+      }
+
+      const data = await tmdbService.getDetails(parsedId, item.type);
+      if (!data) {
+        setTmdbSyncError('Kunde inte hämta metadata från TMDB.');
+      }
+      setTmdbData(data);
+    } catch (error) {
+      console.error('TMDB sync failed:', error);
+      setTmdbSyncError('Misslyckades att synka TMDB metadata.');
+    } finally {
+      setIsTmdbSyncing(false);
     }
   };
 
@@ -402,6 +437,34 @@ export default function ItemDetailPage() {
               <ExternalLink className="w-4 h-4 mr-2" />
               Visa på TMDB
             </Button>
+          )}
+
+          {!item.tmdbId && (
+            <div className="space-y-3 rounded-lg border border-border bg-card p-4">
+              <div>
+                <p className="text-sm font-medium">Ingen TMDB-matchning</p>
+                <p className="text-xs text-muted-foreground">
+                  Lägg till ett TMDB-ID för att hämta metadata och poster.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Input
+                  inputMode="numeric"
+                  placeholder="TMDB-ID (t.ex. 550)"
+                  value={tmdbIdInput}
+                  onChange={(event) => setTmdbIdInput(event.target.value)}
+                />
+                <Button
+                  onClick={handleTmdbSync}
+                  disabled={isTmdbSyncing}
+                >
+                  {isTmdbSyncing ? 'Hämtar metadata...' : 'Hämta metadata från TMDB'}
+                </Button>
+                {tmdbSyncError && (
+                  <p className="text-xs text-destructive">{tmdbSyncError}</p>
+                )}
+              </div>
+            </div>
           )}
 
           {/* Metadata */}
