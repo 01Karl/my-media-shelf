@@ -1,6 +1,6 @@
 // Add item page - multi-step flow for adding media items
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -76,6 +76,10 @@ export default function AddItemPage() {
   const [isProcessingOcr, setIsProcessingOcr] = useState(false);
   const [isCheckingLibrary, setIsCheckingLibrary] = useState(false);
   const [scanMatches, setScanMatches] = useState<MediaItem[]>([]);
+  const [isLiveCameraActive, setIsLiveCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const liveVideoRef = useRef<HTMLVideoElement | null>(null);
+  const liveStreamRef = useRef<MediaStream | null>(null);
   
   // Metadata
   const [title, setTitle] = useState('');
@@ -131,6 +135,39 @@ export default function AddItemPage() {
       setBackImage(image.dataUrl);
     }
   };
+
+  const stopLiveCamera = () => {
+    liveStreamRef.current?.getTracks().forEach((track) => track.stop());
+    liveStreamRef.current = null;
+    setIsLiveCameraActive(false);
+  };
+
+  const startLiveCamera = async () => {
+    try {
+      setCameraError(null);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false,
+      });
+      liveStreamRef.current = stream;
+      if (liveVideoRef.current) {
+        liveVideoRef.current.srcObject = stream;
+        await liveVideoRef.current.play();
+      }
+      setIsLiveCameraActive(true);
+    } catch (error) {
+      console.error('Failed to start live camera:', error);
+      setCameraError('Kameran kunde inte startas. Kontrollera behörigheter.');
+    }
+  };
+
+  useEffect(() => {
+    if (step !== 'capture-images') {
+      stopLiveCamera();
+    }
+
+    return () => stopLiveCamera();
+  }, [step]);
 
   // Process OCR and proceed
   const handleProcessImages = async () => {
@@ -420,6 +457,58 @@ export default function AddItemPage() {
             className="space-y-6"
           >
             <h2 className="text-lg font-semibold">Fota omslaget</h2>
+
+            <div className="space-y-3">
+              <div className="rounded-xl border border-border bg-card overflow-hidden">
+                {isLiveCameraActive ? (
+                  <video
+                    ref={liveVideoRef}
+                    className="w-full aspect-video object-cover"
+                    muted
+                    playsInline
+                  />
+                ) : (
+                  <div className="w-full aspect-video flex items-center justify-center text-sm text-muted-foreground">
+                    Livekamera är avstängd
+                  </div>
+                )}
+              </div>
+              {cameraError && (
+                <p className="text-sm text-destructive">{cameraError}</p>
+              )}
+              <div className="flex gap-3">
+                {isLiveCameraActive ? (
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={stopLiveCamera}
+                  >
+                    Stäng livekamera
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={startLiveCamera}
+                  >
+                    Starta livekamera
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  className="flex-1"
+                  onClick={() => {
+                    setFrontImage(null);
+                    setBackImage(null);
+                  }}
+                >
+                  Rensa bilder
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Livekameran hjälper dig att rikta omslaget innan du tar bilden.
+              </p>
+            </div>
             
             <div className="grid grid-cols-2 gap-4">
               {/* Front image */}
