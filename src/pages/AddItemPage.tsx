@@ -34,9 +34,16 @@ import {
 import { useAppStore } from '@/stores/appStore';
 import { libraryRepository, itemRepository } from '@/db';
 import { cameraService, ocrService, tmdbService, storageService } from '@/services';
-import type { Library, MediaType, MediaFormat, TMDBSearchResult } from '@/types';
+import type { Library, MediaType, MediaFormat, MediaItem, TMDBSearchResult } from '@/types';
 
-type Step = 'select-library' | 'select-type' | 'capture-images' | 'edit-metadata' | 'tmdb-match' | 'confirm';
+type Step =
+  | 'select-library'
+  | 'select-type'
+  | 'capture-images'
+  | 'scan-check'
+  | 'edit-metadata'
+  | 'tmdb-match'
+  | 'confirm';
 
 const MEDIA_FORMATS: { value: MediaFormat; label: string }[] = [
   { value: 'DVD', label: 'DVD' },
@@ -67,6 +74,8 @@ export default function AddItemPage() {
   const [frontImage, setFrontImage] = useState<string | null>(null);
   const [backImage, setBackImage] = useState<string | null>(null);
   const [isProcessingOcr, setIsProcessingOcr] = useState(false);
+  const [isCheckingLibrary, setIsCheckingLibrary] = useState(false);
+  const [scanMatches, setScanMatches] = useState<MediaItem[]>([]);
   
   // Metadata
   const [title, setTitle] = useState('');
@@ -132,14 +141,39 @@ export default function AddItemPage() {
         frontImage || undefined,
         backImage || undefined
       );
-      
+
+      const nextTitle = ocrResults.suggestedTitle?.trim() || title;
+      const nextYear = ocrResults.suggestedYear ? ocrResults.suggestedYear.toString() : year;
+      const nextSeason = ocrResults.suggestedSeason ? ocrResults.suggestedSeason.toString() : season;
+
       if (ocrResults.suggestedTitle) setTitle(ocrResults.suggestedTitle);
       if (ocrResults.suggestedYear) setYear(ocrResults.suggestedYear.toString());
       if (ocrResults.suggestedSeason) setSeason(ocrResults.suggestedSeason.toString());
       if (ocrResults.audioInfo) setAudioInfo(ocrResults.audioInfo);
       if (ocrResults.videoInfo) setVideoInfo(ocrResults.videoInfo);
+
+      if (selectedLibrary && nextTitle.trim()) {
+        setIsCheckingLibrary(true);
+        const results = await itemRepository.search(nextTitle.trim(), selectedLibrary.libraryId);
+        const filteredResults = results.filter((item) => {
+          const seasonValue = nextSeason ? parseInt(nextSeason, 10) : undefined;
+          const yearValue = nextYear ? parseInt(nextYear, 10) : undefined;
+
+          return (
+            item.type === mediaType &&
+            item.season === seasonValue &&
+            (yearValue ? item.year === yearValue : true)
+          );
+        });
+        setScanMatches(filteredResults);
+        setIsCheckingLibrary(false);
+        setStep('scan-check');
+        setIsProcessingOcr(false);
+        return;
+      }
     } catch (error) {
       console.error('OCR failed:', error);
+      setIsCheckingLibrary(false);
     }
     
     setIsProcessingOcr(false);
@@ -484,6 +518,101 @@ export default function AddItemPage() {
           </motion.div>
         );
 
+      case 'scan-check': {
+        const scanFormatList = Array.from(
+          new Set(scanMatches.map((item) => item.format))
+        ).join(', ');
+
+        return (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-6"
+          >
+            <div>
+              <h2 className="text-lg font-semibold">Snabbkoll i biblioteket</h2>
+              <p className="text-sm text-muted-foreground">
+                Vi försöker matcha omslaget mot ditt bibliotek.
+              </p>
+            </div>
+
+            {isCheckingLibrary ? (
+              <div className="py-10 text-center">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+                <p className="text-sm text-muted-foreground mt-2">Letar efter match...</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-card rounded-xl border border-border p-4">
+                  <p className="text-sm text-muted-foreground">Tolkat från omslag</p>
+                  <p className="text-lg font-semibold">{title || 'Ingen titel hittad ännu'}</p>
+                  {(year || season) && (
+                    <p className="text-sm text-muted-foreground">
+                      {year && `År ${year}`}
+                      {season && ` • Säsong ${season}`}
+                    </p>
+                  )}
+                </div>
+
+                {scanMatches.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+                      <p className="font-medium">
+                        Den här titeln finns redan ({scanFormatList}).
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Vill du lägga till en extra version ändå?
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      {scanMatches.map((item) => (
+                        <div
+                          key={item.itemId}
+                          className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3"
+                        >
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{item.title}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {item.year ?? 'Okänt år'}
+                              {item.season ? ` • Säsong ${item.season}` : ''}
+                            </p>
+                          </div>
+                          <FormatBadge format={item.format} size="sm" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-border bg-card p-4 text-center">
+                    <p className="font-medium">Ingen match hittades.</p>
+                    <p className="text-sm text-muted-foreground">
+                      Vill du lägga till den här titeln?
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setStep('capture-images')}
+              >
+                Fota igen
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={() => setStep('edit-metadata')}
+              >
+                {scanMatches.length > 0 ? 'Lägg till version' : 'Lägg till'}
+              </Button>
+            </div>
+          </motion.div>
+        );
+      }
+
       case 'edit-metadata':
         return (
           <motion.div
@@ -803,8 +932,16 @@ export default function AddItemPage() {
       {/* Progress indicator */}
       <div className="px-4 py-3">
         <div className="flex items-center gap-2">
-          {['select-library', 'select-type', 'capture-images', 'edit-metadata', 'confirm'].map((s, i) => {
-            const steps = ['select-library', 'select-type', 'capture-images', 'edit-metadata', 'tmdb-match', 'confirm'];
+          {['select-library', 'select-type', 'capture-images', 'scan-check', 'edit-metadata', 'confirm'].map((s, i) => {
+            const steps = [
+              'select-library',
+              'select-type',
+              'capture-images',
+              'scan-check',
+              'edit-metadata',
+              'tmdb-match',
+              'confirm',
+            ];
             const currentIndex = steps.indexOf(step);
             const thisIndex = i;
             const isActive = thisIndex <= currentIndex;
