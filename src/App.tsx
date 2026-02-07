@@ -16,6 +16,7 @@ import HomePage from "./pages/HomePage";
 import LibrariesPage from "./pages/LibrariesPage";
 import CreateLibraryPage from "./pages/CreateLibraryPage";
 import LibraryDetailPage from "./pages/LibraryDetailPage";
+import SeriesDetailPage from "./pages/SeriesDetailPage";
 import AddItemPage from "./pages/AddItemPage";
 import ItemDetailPage from "./pages/ItemDetailPage";
 import SyncPage from "./pages/SyncPage";
@@ -69,6 +70,7 @@ function AppContent() {
         <Route path="/libraries" element={isAuthenticated ? <LibrariesPage /> : <Navigate to="/auth" />} />
         <Route path="/libraries/create" element={isAuthenticated ? <CreateLibraryPage /> : <Navigate to="/auth" />} />
         <Route path="/libraries/:libraryId" element={isAuthenticated ? <LibraryDetailPage /> : <Navigate to="/auth" />} />
+        <Route path="/series/:seriesId" element={isAuthenticated ? <SeriesDetailPage /> : <Navigate to="/auth" />} />
         <Route path="/add" element={isAuthenticated ? <AddItemPage /> : <Navigate to="/auth" />} />
         <Route path="/items/:itemId" element={isAuthenticated ? <ItemDetailPage /> : <Navigate to="/auth" />} />
         <Route path="/sync" element={isAuthenticated ? <SyncPage /> : <Navigate to="/auth" />} />

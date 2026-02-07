@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Filter, Grid, List, MoreVertical, Pencil, Trash2, Users, Share } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { MediaCard } from '@/components/MediaCard';
+import { SeriesCard } from '@/components/SeriesCard';
 import { SearchInput } from '@/components/SearchInput';
 import { EmptyState } from '@/components/EmptyState';
 import { FormatBadge } from '@/components/FormatBadge';
@@ -87,12 +88,73 @@ export default function LibraryDetailPage() {
     }
   };
 
-  const filteredItems = items.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase());
+  const normalizeTitle = (title: string) =>
+    title
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s]/g, '')
+      .replace(/\s+/g, ' ');
+
+  const createSeriesKey = (item: MediaItem) =>
+    item.tmdbId ? `tmdb-${item.tmdbId}` : `${normalizeTitle(item.title)}-${item.year ?? 'unknown'}`;
+
+  const matchesSearchQuery = (title: string) =>
+    title.toLowerCase().includes(searchQuery.toLowerCase());
+
+  const seriesItems = items.filter(item => item.type === 'series');
+  const nonSeriesItems = items.filter(item => item.type !== 'series');
+
+  const seriesGroups = seriesItems.reduce((acc, item) => {
+    const key = createSeriesKey(item);
+    if (!acc.has(key)) {
+      acc.set(key, {
+        key,
+        title: item.title,
+        year: item.year,
+        tmdbId: item.tmdbId,
+        coverImagePath: item.frontImagePath,
+        seasons: [] as MediaItem[],
+        formats: new Set<MediaFormat>(),
+      });
+    }
+    const group = acc.get(key)!;
+    group.seasons.push(item);
+    group.formats.add(item.format);
+    if (!group.coverImagePath && item.frontImagePath) {
+      group.coverImagePath = item.frontImagePath;
+    }
+    if (!group.tmdbId && item.tmdbId) {
+      group.tmdbId = item.tmdbId;
+    }
+    return acc;
+  }, new Map<string, {
+    key: string;
+    title: string;
+    year?: number;
+    tmdbId?: number;
+    coverImagePath?: string | null;
+    seasons: MediaItem[];
+    formats: Set<MediaFormat>;
+  }>());
+
+  const filteredSeriesGroups = Array.from(seriesGroups.values())
+    .filter(group => {
+      const matchesSearch = matchesSearchQuery(group.title);
+      const matchesType = typeFilter === 'all' || typeFilter === 'series';
+      const matchesFormat = formatFilter === 'all'
+        || Array.from(group.formats).includes(formatFilter);
+      return matchesSearch && matchesType && matchesFormat;
+    })
+    .sort((a, b) => a.title.localeCompare(b.title));
+
+  const filteredNonSeriesItems = nonSeriesItems.filter(item => {
+    const matchesSearch = matchesSearchQuery(item.title);
     const matchesType = typeFilter === 'all' || item.type === typeFilter;
     const matchesFormat = formatFilter === 'all' || item.format === formatFilter;
     return matchesSearch && matchesType && matchesFormat;
   });
+
+  const hasResults = filteredSeriesGroups.length > 0 || filteredNonSeriesItems.length > 0;
 
   if (isLoading) {
     return (
@@ -227,53 +289,144 @@ export default function LibraryDetailPage() {
         </div>
 
         {/* Items */}
-        {filteredItems.length > 0 ? (
+        {hasResults ? (
           viewMode === 'grid' ? (
-            <div className="grid grid-cols-3 gap-3">
-              <AnimatePresence>
-                {filteredItems.map((item, index) => (
-                  <motion.div
-                    key={item.itemId}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ delay: index * 0.03 }}
-                  >
-                    <MediaCard
-                      item={item}
-                      tmdbData={item.tmdbId ? tmdbCache[item.tmdbId] : undefined}
-                      onClick={() => navigate(`/items/${item.itemId}`)}
-                    />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+            <div className="space-y-6">
+              {filteredSeriesGroups.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-3">Serier</h3>
+                  <div className="grid grid-cols-3 gap-3">
+                    <AnimatePresence>
+                      {filteredSeriesGroups.map((group, index) => (
+                        <motion.div
+                          key={group.key}
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          transition={{ delay: index * 0.03 }}
+                        >
+                          <SeriesCard
+                            title={group.title}
+                            year={group.year}
+                            tmdbData={group.tmdbId ? tmdbCache[group.tmdbId] : undefined}
+                            coverImagePath={group.coverImagePath}
+                            seasonsOwned={group.seasons.length}
+                            seasonsTotal={group.tmdbId ? tmdbCache[group.tmdbId]?.numberOfSeasons : undefined}
+                            formats={Array.from(group.formats)}
+                            onClick={() => {
+                              const params = new URLSearchParams({
+                                libraryId: libraryId ?? '',
+                                title: group.title,
+                                year: group.year?.toString() ?? '',
+                                tmdbId: group.tmdbId?.toString() ?? '',
+                              });
+                              navigate(`/series/${group.key}?${params.toString()}`);
+                            }}
+                          />
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              )}
+
+              {filteredNonSeriesItems.length > 0 && (
+                <div>
+                  {filteredSeriesGroups.length > 0 && (
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-3">Filmer & övrigt</h3>
+                  )}
+                  <div className="grid grid-cols-3 gap-3">
+                    <AnimatePresence>
+                      {filteredNonSeriesItems.map((item, index) => (
+                        <motion.div
+                          key={item.itemId}
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          transition={{ delay: index * 0.03 }}
+                        >
+                          <MediaCard
+                            item={item}
+                            tmdbData={item.tmdbId ? tmdbCache[item.tmdbId] : undefined}
+                            onClick={() => navigate(`/items/${item.itemId}`)}
+                          />
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
-            <div className="space-y-2">
-              <AnimatePresence>
-                {filteredItems.map((item, index) => (
-                  <motion.div
-                    key={item.itemId}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ delay: index * 0.03 }}
-                    onClick={() => navigate(`/items/${item.itemId}`)}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border cursor-pointer hover:bg-secondary/50 transition-colors"
-                  >
-                    <div className="w-12 h-16 rounded bg-secondary flex items-center justify-center">
-                      <Film className="w-5 h-5 text-muted-foreground" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{item.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {item.year}{item.season && ` • S${item.season}`}
-                      </p>
-                    </div>
-                    <FormatBadge format={item.format} />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+            <div className="space-y-4">
+              {filteredSeriesGroups.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-muted-foreground">Serier</h3>
+                  <AnimatePresence>
+                    {filteredSeriesGroups.map((group, index) => (
+                      <motion.div
+                        key={group.key}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ delay: index * 0.03 }}
+                        onClick={() => {
+                          const params = new URLSearchParams({
+                            libraryId: libraryId ?? '',
+                            title: group.title,
+                            year: group.year?.toString() ?? '',
+                            tmdbId: group.tmdbId?.toString() ?? '',
+                          });
+                          navigate(`/series/${group.key}?${params.toString()}`);
+                        }}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border cursor-pointer hover:bg-secondary/50 transition-colors"
+                      >
+                        <div className="w-12 h-16 rounded bg-secondary flex items-center justify-center">
+                          <Film className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{group.title}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {group.year ? `${group.year} • ` : ''}Säsonger: {group.seasons.length}
+                          </p>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              )}
+
+              {filteredNonSeriesItems.length > 0 && (
+                <div className="space-y-2">
+                  {filteredSeriesGroups.length > 0 && (
+                    <h3 className="text-sm font-semibold text-muted-foreground">Filmer & övrigt</h3>
+                  )}
+                  <AnimatePresence>
+                    {filteredNonSeriesItems.map((item, index) => (
+                      <motion.div
+                        key={item.itemId}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ delay: index * 0.03 }}
+                        onClick={() => navigate(`/items/${item.itemId}`)}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border cursor-pointer hover:bg-secondary/50 transition-colors"
+                      >
+                        <div className="w-12 h-16 rounded bg-secondary flex items-center justify-center">
+                          <Film className="w-5 h-5 text-muted-foreground" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{item.title}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {item.year}{item.season && ` • S${item.season}`}
+                          </p>
+                        </div>
+                        <FormatBadge format={item.format} />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              )}
             </div>
           )
         ) : searchQuery || typeFilter !== 'all' || formatFilter !== 'all' ? (
