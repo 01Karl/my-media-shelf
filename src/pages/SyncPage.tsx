@@ -32,6 +32,7 @@ export default function SyncPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [syncState, setSyncState] = useState(bleSyncService.getState());
   const [error, setError] = useState<string | null>(null);
+  const [syncSummary, setSyncSummary] = useState<{ added: number; updated: number; matched: number } | null>(null);
 
   // Subscribe to sync state changes
   useEffect(() => {
@@ -71,6 +72,14 @@ export default function SyncPage() {
     setStep('scanning');
 
     try {
+      const permissionGranted = await bleSyncService.requestPermissions();
+      if (!permissionGranted) {
+        setError('Bluetooth-behörighet krävs för att synka.');
+        setIsScanning(false);
+        setStep('select-library');
+        return;
+      }
+
       const foundDevices = await bleSyncService.startScanning();
       setDevices(foundDevices);
       setIsScanning(false);
@@ -107,6 +116,7 @@ export default function SyncPage() {
         currentOwner.ownerId,
         selectedLibrary.libraryId
       );
+      setSyncSummary({ added: result.added, updated: result.updated, matched: result.matched });
       setStep('done');
     } catch (err) {
       setError('Synkronisering misslyckades');
@@ -128,6 +138,7 @@ export default function SyncPage() {
     setSelectedLibrary(null);
     setSelectedDevice(null);
     setDevices([]);
+    setSyncSummary(null);
     setError(null);
   };
 
@@ -234,6 +245,14 @@ export default function SyncPage() {
 
             {devices.length > 0 ? (
               <div className="space-y-3">
+                <div className="rounded-xl border border-border bg-card p-4 text-sm">
+                  <p className="font-medium">
+                    {devices[0].name || 'En närliggande enhet'} är i närheten.
+                  </p>
+                  <p className="text-muted-foreground">
+                    Vill du synka ditt delade bibliotek?
+                  </p>
+                </div>
                 {devices.map((device) => (
                   <button
                     key={device.id}
@@ -306,6 +325,24 @@ export default function SyncPage() {
         );
 
       case 'done':
+        if (!syncSummary) {
+          return (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center py-12"
+            >
+              <div className="w-20 h-20 rounded-full bg-success/20 flex items-center justify-center mx-auto mb-6">
+                <Check className="w-10 h-10 text-success" />
+              </div>
+              <h2 className="text-xl font-semibold mb-2">Synkronisering klar!</h2>
+              <Button onClick={handleDone} className="mt-4">
+                Klar
+              </Button>
+            </motion.div>
+          );
+        }
+
         return (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -320,15 +357,15 @@ export default function SyncPage() {
             <div className="bg-card rounded-xl border border-border p-4 max-w-xs mx-auto my-6">
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
-                  <p className="text-2xl font-bold text-primary">5</p>
+                  <p className="text-2xl font-bold text-primary">{syncSummary.added}</p>
                   <p className="text-xs text-muted-foreground">Nya</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">2</p>
+                  <p className="text-2xl font-bold">{syncSummary.updated}</p>
                   <p className="text-xs text-muted-foreground">Uppdaterade</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">10</p>
+                  <p className="text-2xl font-bold">{syncSummary.matched}</p>
                   <p className="text-xs text-muted-foreground">Matchade</p>
                 </div>
               </div>

@@ -29,6 +29,33 @@ const isCapacitor = (): boolean => {
   return typeof (window as any).Capacitor !== 'undefined';
 };
 
+const isWebBluetoothAvailable = (): boolean => {
+  return typeof navigator !== 'undefined' && 'bluetooth' in navigator;
+};
+
+const canQueryBluetoothPermission = (): boolean => {
+  return typeof navigator !== 'undefined' && 'permissions' in navigator;
+};
+
+const queryBluetoothPermission = async (): Promise<PermissionState | null> => {
+  if (!canQueryBluetoothPermission()) {
+    return null;
+  }
+
+  const permissionNames: PermissionName[] = ['bluetooth' as PermissionName, 'bluetooth-le' as PermissionName];
+
+  for (const name of permissionNames) {
+    try {
+      const status = await navigator.permissions.query({ name });
+      return status.state;
+    } catch (error) {
+      continue;
+    }
+  }
+
+  return null;
+};
+
 // Sync state
 interface SyncState {
   isScanning: boolean;
@@ -98,10 +125,34 @@ export const bleSyncService = {
   async isAvailable(): Promise<boolean> {
     if (!isCapacitor()) {
       // Web Bluetooth API check
-      return 'bluetooth' in navigator;
+      return isWebBluetoothAvailable();
     }
     
     // TODO: Check Capacitor BLE availability
+    return true;
+  },
+
+  /**
+   * Request Bluetooth permissions when supported
+   */
+  async requestPermissions(): Promise<boolean> {
+    if (isCapacitor()) {
+      // TODO: Implement Capacitor BLE permission request
+      return true;
+    }
+
+    if (!isWebBluetoothAvailable()) {
+      return false;
+    }
+
+    const permissionState = await queryBluetoothPermission();
+    if (permissionState === 'granted') {
+      return true;
+    }
+    if (permissionState === 'denied') {
+      return false;
+    }
+
     return true;
   },
 
@@ -110,19 +161,29 @@ export const bleSyncService = {
    */
   async startScanning(): Promise<BLEDevice[]> {
     if (!isCapacitor()) {
-      console.log('BLE scanning (web stub) - would scan for devices');
+      if (!isWebBluetoothAvailable()) {
+        throw new Error('Bluetooth not supported');
+      }
+
       updateState({ isScanning: true });
-      
-      // Simulate finding devices for testing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const mockDevices: BLEDevice[] = [
-        { id: 'mock-device-1', name: "Jerry's Phone", rssi: -65 },
-        { id: 'mock-device-2', name: "Anna's iPad", rssi: -72 },
-      ];
-      
-      updateState({ isScanning: false });
-      return mockDevices;
+
+      try {
+        const device = await navigator.bluetooth.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: [SERVICE_UUID],
+        });
+
+        const webDevice: BLEDevice = {
+          id: device.id,
+          name: device.name || 'Okänd enhet',
+        };
+
+        updateState({ isScanning: false });
+        return [webDevice];
+      } catch (error) {
+        updateState({ isScanning: false });
+        throw error;
+      }
     }
 
     try {
