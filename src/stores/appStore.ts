@@ -5,6 +5,8 @@ import { persist } from 'zustand/middleware';
 import type { Owner, Library, MediaItem } from '@/types';
 import { initDatabase, ownerRepository, getSetting, setSetting } from '@/db';
 import { runOneTimeSeriesImport } from '@/services/oneTimeSeriesImport';
+import { getDeviceLanguage, normalizeLanguage } from '@/lib/language';
+import type { AppLanguage } from '@/lib/language';
 
 interface AppState {
   
@@ -17,6 +19,9 @@ interface AppState {
   
   
   activeLibraryId: string | null;
+
+  
+  language: AppLanguage;
   
   
   initialize: () => Promise<void>;
@@ -25,6 +30,7 @@ interface AppState {
   createOwner: (displayName: string, pin?: string) => Promise<Owner>;
   setActiveLibrary: (libraryId: string | null) => void;
   updateOnlineStatus: (isOnline: boolean) => void;
+  setLanguage: (language: AppLanguage) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>()(
@@ -35,11 +41,19 @@ export const useAppStore = create<AppState>()(
       currentOwner: null,
       isOnline: navigator.onLine,
       activeLibraryId: null,
+      language: getDeviceLanguage(),
 
       initialize: async () => {
         try {
           
           await initDatabase();
+
+          const savedLanguage = await getSetting('language');
+          const resolvedLanguage = normalizeLanguage(savedLanguage);
+          if (!savedLanguage) {
+            await setSetting('language', resolvedLanguage);
+          }
+          set({ language: resolvedLanguage });
           
           
           const savedOwnerId = await getSetting('currentOwnerId');
@@ -118,6 +132,11 @@ export const useAppStore = create<AppState>()(
 
       updateOnlineStatus: (isOnline: boolean) => {
         set({ isOnline });
+      },
+
+      setLanguage: async (language: AppLanguage) => {
+        await setSetting('language', language);
+        set({ language });
       },
     }),
     {
