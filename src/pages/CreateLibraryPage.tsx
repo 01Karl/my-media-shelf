@@ -12,12 +12,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useAppStore } from '@/stores/appStore';
 import { libraryRepository } from '@/db';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const EMOJI_OPTIONS = ['📚', '🎬', '📀', '🎞️', '📺', '🎥', '🎭', '🎪', '🌟', '💎', '🔥', '⭐'];
 
 export default function CreateLibraryPage() {
   const navigate = useNavigate();
   const { currentOwner } = useAppStore();
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [icon, setIcon] = useState('📚');
@@ -30,12 +32,12 @@ export default function CreateLibraryPage() {
     setError('');
 
     if (!name.trim()) {
-      setError('Ange ett namn för biblioteket');
+      setError(t('createLibrary.errors.nameRequired'));
       return;
     }
 
     if (!currentOwner) {
-      setError('Ingen användare inloggad');
+      setError(t('createLibrary.errors.noUser'));
       return;
     }
 
@@ -54,7 +56,7 @@ export default function CreateLibraryPage() {
 
       navigate(`/libraries/${library.libraryId}`);
     } catch (err) {
-      setError('Kunde inte skapa biblioteket');
+      setError(t('createLibrary.errors.createFailed'));
       setIsLoading(false);
     }
   };
@@ -62,7 +64,7 @@ export default function CreateLibraryPage() {
   return (
     <div className="page-container">
       <PageHeader
-        title="Skapa bibliotek"
+        title={t('createLibrary.title')}
         showBack
       />
 
@@ -100,12 +102,12 @@ export default function CreateLibraryPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <Label htmlFor="name">Namn</Label>
+          <Label htmlFor="name">{t('createLibrary.name')}</Label>
           <Input
             id="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="T.ex. Min samling"
+            placeholder={t('createLibrary.namePlaceholder')}
             className="mt-2"
             autoFocus
           />
@@ -117,12 +119,12 @@ export default function CreateLibraryPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Label htmlFor="description">Beskrivning (valfritt)</Label>
+          <Label htmlFor="description">{t('createLibrary.description')}</Label>
           <Textarea
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Beskriv biblioteket..."
+            placeholder={t('createLibrary.descriptionPlaceholder')}
             className="mt-2"
             rows={3}
           />
@@ -138,9 +140,9 @@ export default function CreateLibraryPage() {
           <div className="flex items-center gap-3">
             <Users className="w-5 h-5 text-primary" />
             <div>
-              <p className="font-medium">Delat bibliotek</p>
+              <p className="font-medium">{t('createLibrary.shared')}</p>
               <p className="text-sm text-muted-foreground">
-                Kan synkas med andra via Bluetooth
+                {t('createLibrary.sharedDescription')}
               </p>
             </div>
           </div>
@@ -159,10 +161,9 @@ export default function CreateLibraryPage() {
             <div className="flex items-start gap-3">
               <Sparkles className="w-5 h-5 text-primary mt-0.5" />
               <div>
-                <p className="text-sm font-medium">Delning aktiverad</p>
+                <p className="text-sm font-medium">{t('createLibrary.sharingEnabled')}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Detta bibliotek får ett unikt ID som gör det möjligt att synka 
-                  innehåll med andra som har samma bibliotek.
+                  {t('createLibrary.sharingEnabledDescription')}
                 </p>
               </div>
             </div>
@@ -192,7 +193,7 @@ export default function CreateLibraryPage() {
             size="lg"
             disabled={isLoading}
           >
-            {isLoading ? 'Skapar...' : 'Skapa bibliotek'}
+            {isLoading ? t('createLibrary.creating') : t('createLibrary.create')}
           </Button>
         </motion.div>
       </form>

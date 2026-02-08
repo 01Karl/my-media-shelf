@@ -9,10 +9,12 @@ import { Button } from '@/components/ui/button';
 import { useAppStore } from '@/stores/appStore';
 import { ownerRepository } from '@/db';
 import type { Owner } from '@/types';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function AuthPage() {
   const navigate = useNavigate();
   const { isInitialized, isAuthenticated, currentOwner, login, initialize } = useAppStore();
+  const { t } = useTranslation();
   const [owners, setOwners] = useState<Owner[]>([]);
   const [selectedOwner, setSelectedOwner] = useState<Owner | null>(null);
   const [showPinInput, setShowPinInput] = useState(false);
@@ -90,10 +92,10 @@ export default function AuthPage() {
             <Film className="w-10 h-10 text-primary" />
           </div>
           <h1 className="text-2xl font-bold gradient-text mb-2">
-            Media Library
+            {t('common.appName')}
           </h1>
           <p className="text-muted-foreground">
-            Din lokala film- och seriesamling
+            {t('auth.tagline')}
           </p>
         </motion.div>
 
@@ -108,7 +110,7 @@ export default function AuthPage() {
                 <User className="w-8 h-8 text-muted-foreground" />
               </div>
               <h2 className="font-semibold">{selectedOwner.displayName}</h2>
-              <p className="text-sm text-muted-foreground mt-1">Ange din PIN-kod</p>
+              <p className="text-sm text-muted-foreground mt-1">{t('auth.enterPin')}</p>
             </div>
             
             <PinInput
@@ -125,7 +127,7 @@ export default function AuthPage() {
                 setSelectedOwner(null);
               }}
             >
-              Tillbaka
+              {t('common.back')}
             </Button>
           </motion.div>
         ) : owners.length > 0 ? (
@@ -135,7 +137,7 @@ export default function AuthPage() {
             className="w-full max-w-sm space-y-3"
           >
             <p className="text-sm text-muted-foreground text-center mb-4">
-              Välj användare
+              {t('auth.selectUser')}
             </p>
             
             {owners.map((owner) => (
@@ -150,7 +152,7 @@ export default function AuthPage() {
                 <div className="flex-1 text-left">
                   <p className="font-medium">{owner.displayName}</p>
                   <p className="text-sm text-muted-foreground">
-                    {owner.pinHash ? 'PIN-skyddad' : 'Ingen PIN'}
+                    {owner.pinHash ? t('auth.pinProtected') : t('auth.noPin')}
                   </p>
                 </div>
               </button>
@@ -162,7 +164,7 @@ export default function AuthPage() {
               onClick={handleCreateNew}
             >
               <Plus className="w-4 h-4 mr-2" />
-              Skapa ny användare
+              {t('auth.createNewUser')}
             </Button>
           </motion.div>
         ) : (
@@ -172,7 +174,7 @@ export default function AuthPage() {
             className="w-full max-w-sm"
           >
             <p className="text-center text-muted-foreground mb-6">
-              Skapa ett lokalt konto för att komma igång
+              {t('auth.createAccountPrompt')}
             </p>
             
             <Button
@@ -181,7 +183,7 @@ export default function AuthPage() {
               onClick={handleCreateNew}
             >
               <Plus className="w-4 h-4 mr-2" />
-              Skapa användare
+              {t('auth.createUser')}
             </Button>
           </motion.div>
         )}

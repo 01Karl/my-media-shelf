@@ -16,6 +16,7 @@ import { useAppStore } from '@/stores/appStore';
 import { libraryRepository } from '@/db';
 import { bleSyncService } from '@/services';
 import type { Library, BLEDevice } from '@/types';
+import { useTranslation } from '@/hooks/useTranslation';
 
 type SyncStep = 'select-library' | 'scanning' | 'select-device' | 'syncing' | 'done';
 
@@ -23,6 +24,7 @@ export default function SyncPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { currentOwner } = useAppStore();
+  const { t } = useTranslation();
   
   const [step, setStep] = useState<SyncStep>('select-library');
   const [libraries, setLibraries] = useState<Library[]>([]);
@@ -74,7 +76,7 @@ export default function SyncPage() {
     try {
       const permissionGranted = await bleSyncService.requestPermissions();
       if (!permissionGranted) {
-        setError('Bluetooth-behörighet krävs för att synka.');
+        setError(t('sync.errors.permissionRequired'));
         setIsScanning(false);
         setStep('select-library');
         return;
@@ -85,7 +87,7 @@ export default function SyncPage() {
       setIsScanning(false);
       setStep('select-device');
     } catch (err) {
-      setError('Kunde inte starta Bluetooth-sökning. Kontrollera att Bluetooth är aktiverat.');
+      setError(t('sync.errors.scanFailed'));
       setIsScanning(false);
     }
   };
@@ -99,10 +101,10 @@ export default function SyncPage() {
       if (connected) {
         handleStartSync();
       } else {
-        setError('Kunde inte ansluta till enheten');
+        setError(t('sync.errors.connectFailed'));
       }
     } catch (err) {
-      setError('Anslutning misslyckades');
+      setError(t('sync.errors.connectionFailed'));
     }
   };
 
@@ -119,7 +121,7 @@ export default function SyncPage() {
       setSyncSummary({ added: result.added, updated: result.updated, matched: result.matched });
       setStep('done');
     } catch (err) {
-      setError('Synkronisering misslyckades');
+      setError(t('sync.errors.syncFailed'));
     }
   };
 
@@ -155,9 +157,9 @@ export default function SyncPage() {
               <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-4">
                 <Share className="w-8 h-8 text-primary" />
               </div>
-              <h2 className="text-lg font-semibold">Välj bibliotek att synka</h2>
+              <h2 className="text-lg font-semibold">{t('sync.selectLibraryTitle')}</h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Endast delade bibliotek kan synkas
+                {t('sync.selectLibrarySubtitle')}
               </p>
             </div>
 
@@ -191,9 +193,9 @@ export default function SyncPage() {
             ) : (
               <EmptyState
                 icon={Users}
-                title="Inga delade bibliotek"
-                description="Skapa ett delat bibliotek för att kunna synka med andra"
-                actionLabel="Skapa bibliotek"
+                title={t('sync.noSharedLibrariesTitle')}
+                description={t('sync.noSharedLibrariesDescription')}
+                actionLabel={t('libraries.createLibrary')}
                 onAction={() => navigate('/libraries/create')}
               />
             )}
@@ -214,9 +216,9 @@ export default function SyncPage() {
             >
               <BluetoothSearching className="w-12 h-12 text-primary" />
             </motion.div>
-            <h2 className="text-lg font-semibold mb-2">Söker efter enheter...</h2>
+            <h2 className="text-lg font-semibold mb-2">{t('sync.scanningTitle')}</h2>
             <p className="text-sm text-muted-foreground">
-              Se till att den andra enheten också söker
+              {t('sync.scanningSubtitle')}
             </p>
             
             <Button
@@ -224,7 +226,7 @@ export default function SyncPage() {
               className="mt-8"
               onClick={handleReset}
             >
-              Avbryt
+              {t('common.cancel')}
             </Button>
           </motion.div>
         );
@@ -237,9 +239,9 @@ export default function SyncPage() {
             className="space-y-4"
           >
             <div className="text-center mb-6">
-              <h2 className="text-lg font-semibold">Hittade enheter</h2>
+              <h2 className="text-lg font-semibold">{t('sync.foundDevicesTitle')}</h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Välj en enhet att synka med
+                {t('sync.foundDevicesSubtitle')}
               </p>
             </div>
 
@@ -247,10 +249,10 @@ export default function SyncPage() {
               <div className="space-y-3">
                 <div className="rounded-xl border border-border bg-card p-4 text-sm">
                   <p className="font-medium">
-                    {devices[0].name || 'En närliggande enhet'} är i närheten.
+                    {t('sync.nearbyDevice', { name: devices[0].name || t('sync.unknownNearby') })}
                   </p>
                   <p className="text-muted-foreground">
-                    Vill du synka ditt delade bibliotek?
+                    {t('sync.nearbyPrompt')}
                   </p>
                 </div>
                 {devices.map((device) => (
@@ -263,10 +265,17 @@ export default function SyncPage() {
                       <Smartphone className="w-6 h-6 text-muted-foreground" />
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium">{device.name || 'Okänd enhet'}</p>
+                      <p className="font-medium">{device.name || t('sync.unknownDevice')}</p>
                       {device.rssi && (
                         <p className="text-xs text-muted-foreground">
-                          Signal: {device.rssi > -60 ? 'Stark' : device.rssi > -80 ? 'Medium' : 'Svag'}
+                          {t('sync.signalLabel', {
+                            strength:
+                              device.rssi > -60
+                                ? t('sync.signalStrong')
+                                : device.rssi > -80
+                                  ? t('sync.signalMedium')
+                                  : t('sync.signalWeak'),
+                          })}
                         </p>
                       )}
                     </div>
@@ -277,8 +286,8 @@ export default function SyncPage() {
             ) : (
               <EmptyState
                 icon={Bluetooth}
-                title="Inga enheter hittades"
-                description="Se till att den andra enheten har Bluetooth aktiverat och söker"
+                title={t('sync.noDevicesTitle')}
+                description={t('sync.noDevicesDescription')}
               />
             )}
 
@@ -288,7 +297,7 @@ export default function SyncPage() {
                 className="flex-1"
                 onClick={handleReset}
               >
-                Avbryt
+                {t('common.cancel')}
               </Button>
               <Button
                 variant="secondary"
@@ -296,7 +305,7 @@ export default function SyncPage() {
                 onClick={handleStartScanning}
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Sök igen
+                {t('sync.scanAgain')}
               </Button>
             </div>
           </motion.div>
@@ -311,10 +320,10 @@ export default function SyncPage() {
           >
             <Loader2 className="w-16 h-16 text-primary animate-spin mx-auto mb-6" />
             <h2 className="text-lg font-semibold mb-2">
-              {syncState.syncProgress.message || 'Synkroniserar...'}
+              {syncState.syncProgress.message || t('sync.syncing')}
             </h2>
             <p className="text-sm text-muted-foreground mb-6">
-              Håll enheterna nära varandra
+              {t('sync.keepDevicesClose')}
             </p>
             
             <Progress value={syncState.syncProgress.progress} className="max-w-xs mx-auto" />
@@ -335,9 +344,9 @@ export default function SyncPage() {
               <div className="w-20 h-20 rounded-full bg-success/20 flex items-center justify-center mx-auto mb-6">
                 <Check className="w-10 h-10 text-success" />
               </div>
-              <h2 className="text-xl font-semibold mb-2">Synkronisering klar!</h2>
+              <h2 className="text-xl font-semibold mb-2">{t('sync.doneTitle')}</h2>
               <Button onClick={handleDone} className="mt-4">
-                Klar
+                {t('sync.doneButton')}
               </Button>
             </motion.div>
           );
@@ -352,27 +361,27 @@ export default function SyncPage() {
             <div className="w-20 h-20 rounded-full bg-success/20 flex items-center justify-center mx-auto mb-6">
               <Check className="w-10 h-10 text-success" />
             </div>
-            <h2 className="text-xl font-semibold mb-2">Synkronisering klar!</h2>
+            <h2 className="text-xl font-semibold mb-2">{t('sync.doneTitle')}</h2>
             
             <div className="bg-card rounded-xl border border-border p-4 max-w-xs mx-auto my-6">
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
                   <p className="text-2xl font-bold text-primary">{syncSummary.added}</p>
-                  <p className="text-xs text-muted-foreground">Nya</p>
+                  <p className="text-xs text-muted-foreground">{t('sync.added')}</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{syncSummary.updated}</p>
-                  <p className="text-xs text-muted-foreground">Uppdaterade</p>
+                  <p className="text-xs text-muted-foreground">{t('sync.updated')}</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{syncSummary.matched}</p>
-                  <p className="text-xs text-muted-foreground">Matchade</p>
+                  <p className="text-xs text-muted-foreground">{t('sync.matched')}</p>
                 </div>
               </div>
             </div>
             
             <Button onClick={handleDone} className="mt-4">
-              Klar
+              {t('sync.doneButton')}
             </Button>
           </motion.div>
         );
@@ -382,7 +391,7 @@ export default function SyncPage() {
   return (
     <div className="page-container">
       <PageHeader
-        title="Synka"
+        title={t('sync.title')}
         subtitle={selectedLibrary?.name}
         showBack={step !== 'syncing'}
       />

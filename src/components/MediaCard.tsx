@@ -8,6 +8,7 @@ import type { MediaItem, TMDBData } from '@/types';
 import { tmdbService } from '@/services';
 import { useEffect, useState } from 'react';
 import { storageService } from '@/services';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface MediaCardProps {
   item: MediaItem;
@@ -17,6 +18,7 @@ interface MediaCardProps {
 }
 
 export function MediaCard({ item, tmdbData, onClick, className }: MediaCardProps) {
+  const { t } = useTranslation();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -77,7 +79,7 @@ export function MediaCard({ item, tmdbData, onClick, className }: MediaCardProps
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-secondary text-muted-foreground">
             <Film className="w-12 h-12 mb-2 opacity-50" />
-            <span className="text-xs opacity-50">Ingen bild</span>
+            <span className="text-xs opacity-50">{t('search.noImage')}</span>
           </div>
         )}
         

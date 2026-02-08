@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { FormatBadge } from './FormatBadge';
 import type { MediaFormat, TMDBData } from '@/types';
 import { storageService, tmdbService } from '@/services';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface SeriesCardProps {
   title: string;
@@ -31,6 +32,7 @@ export function SeriesCard({
   onClick,
   className,
 }: SeriesCardProps) {
+  const { t } = useTranslation();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -93,7 +95,7 @@ export function SeriesCard({
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-secondary text-muted-foreground">
             <Film className="w-12 h-12 mb-2 opacity-50" />
-            <span className="text-xs opacity-50">Ingen bild</span>
+            <span className="text-xs opacity-50">{t('search.noImage')}</span>
           </div>
         )}
 
@@ -117,7 +119,7 @@ export function SeriesCard({
           <div className="flex flex-col gap-1 mt-1 text-xs text-muted-foreground">
             {year && <span>{year}</span>}
             <span>
-              Säsonger: {seasonsOwned}
+              {t('series.seasons')}: {seasonsOwned}
               {seasonsTotal ? ` / ${seasonsTotal}` : ''}
             </span>
           </div>

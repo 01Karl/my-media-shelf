@@ -4,6 +4,7 @@ import { Home, Library, Plus, Bluetooth, Settings } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface NavItem {
   icon: typeof Home;
@@ -11,17 +12,18 @@ interface NavItem {
   path: string;
 }
 
-const navItems: NavItem[] = [
-  { icon: Home, label: 'Hem', path: '/' },
-  { icon: Library, label: 'Bibliotek', path: '/libraries' },
-  { icon: Plus, label: 'Lägg till', path: '/add' },
-  { icon: Bluetooth, label: 'Synka', path: '/sync' },
-  { icon: Settings, label: 'Inställningar', path: '/settings' },
-];
-
 export function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const navItems: NavItem[] = [
+    { icon: Home, label: t('nav.home'), path: '/' },
+    { icon: Library, label: t('nav.libraries'), path: '/libraries' },
+    { icon: Plus, label: t('nav.add'), path: '/add' },
+    { icon: Bluetooth, label: t('nav.sync'), path: '/sync' },
+    { icon: Settings, label: t('nav.settings'), path: '/settings' },
+  ];
 
   
   if (location.pathname.startsWith('/auth')) {

@@ -2,14 +2,16 @@
 
 
 import { tmdbCacheRepository } from '@/db';
+import { useAppStore } from '@/stores/appStore';
+import { getDeviceLanguage } from '@/lib/language';
+import type { AppLanguage } from '@/lib/language';
 import type { MediaType, TMDBData, TMDBSearchResult } from '@/types';
 
 const TMDB_API_BASE = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p';
 
 const FALLBACK_API_KEY = '';
-const PREFERRED_LANGUAGE = 'sv-SE';
-const FALLBACK_LANGUAGE = 'en-US';
+const FALLBACK_LANGUAGE: AppLanguage = 'en-US';
 
 
 const getApiKey = (): string | null => {
@@ -19,6 +21,17 @@ const getApiKey = (): string | null => {
 
 const isOnline = (): boolean => {
   return navigator.onLine;
+};
+
+const getPreferredLanguage = (): AppLanguage => {
+  return useAppStore.getState().language || getDeviceLanguage();
+};
+
+const getFallbackLanguage = (preferredLanguage: AppLanguage): AppLanguage | null => {
+  if (preferredLanguage === FALLBACK_LANGUAGE) {
+    return null;
+  }
+  return FALLBACK_LANGUAGE;
 };
 
 const normalizeMovie = (movie: any): TMDBSearchResult => ({
@@ -78,16 +91,18 @@ export const tmdbService = {
           return [];
         }
 
-        const data = await response.json();
-        return data.results.map((movie: any) => normalizeMovie(movie));
+      const data = await response.json();
+      return data.results.map((movie: any) => normalizeMovie(movie));
       };
 
-      const swedishResults = await searchWithLanguage(PREFERRED_LANGUAGE);
-      if (swedishResults.length > 0) {
-        return swedishResults;
+      const preferredLanguage = getPreferredLanguage();
+      const fallbackLanguage = getFallbackLanguage(preferredLanguage);
+      const preferredResults = await searchWithLanguage(preferredLanguage);
+      if (preferredResults.length > 0 || !fallbackLanguage) {
+        return preferredResults;
       }
 
-      return await searchWithLanguage(FALLBACK_LANGUAGE);
+      return await searchWithLanguage(fallbackLanguage);
     } catch (error) {
       console.error('TMDB search error:', error);
       return [];
@@ -115,16 +130,18 @@ export const tmdbService = {
           return [];
         }
 
-        const data = await response.json();
-        return data.results.map((series: any) => normalizeSeries(series));
+      const data = await response.json();
+      return data.results.map((series: any) => normalizeSeries(series));
       };
 
-      const swedishResults = await searchWithLanguage(PREFERRED_LANGUAGE);
-      if (swedishResults.length > 0) {
-        return swedishResults;
+      const preferredLanguage = getPreferredLanguage();
+      const fallbackLanguage = getFallbackLanguage(preferredLanguage);
+      const preferredResults = await searchWithLanguage(preferredLanguage);
+      if (preferredResults.length > 0 || !fallbackLanguage) {
+        return preferredResults;
       }
 
-      return await searchWithLanguage(FALLBACK_LANGUAGE);
+      return await searchWithLanguage(fallbackLanguage);
     } catch (error) {
       console.error('TMDB search error:', error);
       return [];
@@ -165,14 +182,16 @@ export const tmdbService = {
         return response.json();
       };
 
-      const movie = await fetchMovie(PREFERRED_LANGUAGE);
+      const preferredLanguage = getPreferredLanguage();
+      const fallbackLanguage = getFallbackLanguage(preferredLanguage);
+      const movie = await fetchMovie(preferredLanguage);
       if (!movie) {
         return null;
       }
 
       let fallbackMovie: any | null = null;
-      if (needsEnglishFallback({ title: movie.title, overview: movie.overview })) {
-        fallbackMovie = await fetchMovie(FALLBACK_LANGUAGE);
+      if (fallbackLanguage && needsEnglishFallback({ title: movie.title, overview: movie.overview })) {
+        fallbackMovie = await fetchMovie(fallbackLanguage);
       }
 
       const data: TMDBData = {
@@ -222,14 +241,16 @@ export const tmdbService = {
         return response.json();
       };
 
-      const series = await fetchSeries(PREFERRED_LANGUAGE);
+      const preferredLanguage = getPreferredLanguage();
+      const fallbackLanguage = getFallbackLanguage(preferredLanguage);
+      const series = await fetchSeries(preferredLanguage);
       if (!series) {
         return null;
       }
 
       let fallbackSeries: any | null = null;
-      if (needsEnglishFallback({ title: series.name, overview: series.overview })) {
-        fallbackSeries = await fetchSeries(FALLBACK_LANGUAGE);
+      if (fallbackLanguage && needsEnglishFallback({ title: series.name, overview: series.overview })) {
+        fallbackSeries = await fetchSeries(fallbackLanguage);
       }
 
       const data: TMDBData = {
