@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Cinema-inspired dark design system with gold accents */
+/* Cinema-inspired dark design system with red accents */
 
 @layer base {
   :root {
@@ -16,8 +16,8 @@
     --popover: 240 10% 8%;
     --popover-foreground: 45 10% 95%;
 
-    /* Gold/Amber primary - classic cinema */
-    --primary: 38 92% 50%;
+    /* Red primary - classic cinema */
+    --primary: 357 92% 47%;
     --primary-foreground: 240 10% 6%;
 
     --secondary: 240 8% 18%;
@@ -26,7 +26,7 @@
     --muted: 240 8% 15%;
     --muted-foreground: 240 5% 55%;
 
-    --accent: 38 80% 45%;
+    --accent: 0 100% 35%;
     --accent-foreground: 240 10% 6%;
 
     --destructive: 0 72% 51%;
@@ -37,7 +37,7 @@
 
     --border: 240 8% 18%;
     --input: 240 8% 18%;
-    --ring: 38 92% 50%;
+    --ring: 357 92% 47%;
 
     --radius: 0.75rem;
 
@@ -52,22 +52,22 @@
     /* Sidebar - keeping dark */
     --sidebar-background: 240 10% 8%;
     --sidebar-foreground: 45 10% 90%;
-    --sidebar-primary: 38 92% 50%;
+    --sidebar-primary: 357 92% 47%;
     --sidebar-primary-foreground: 240 10% 6%;
     --sidebar-accent: 240 8% 15%;
     --sidebar-accent-foreground: 45 10% 90%;
     --sidebar-border: 240 8% 18%;
-    --sidebar-ring: 38 92% 50%;
+    --sidebar-ring: 357 92% 47%;
 
     /* Gradients */
-    --gradient-gold: linear-gradient(135deg, hsl(38, 92%, 50%), hsl(45, 90%, 60%));
+    --gradient-gold: linear-gradient(135deg, hsl(357, 92%, 47%), hsl(0, 100%, 35%));
     --gradient-card: linear-gradient(180deg, hsl(240, 10%, 12%), hsl(240, 10%, 8%));
     --gradient-overlay: linear-gradient(180deg, transparent 0%, hsl(240, 10%, 6%, 0.9) 100%);
     
     /* Shadows */
     --shadow-card: 0 4px 24px -4px hsl(0, 0%, 0%, 0.5);
     --shadow-elevated: 0 8px 32px -8px hsl(0, 0%, 0%, 0.6);
-    --shadow-glow: 0 0 40px -10px hsl(38, 92%, 50%, 0.3);
+    --shadow-glow: 0 0 40px -10px hsl(357, 92%, 47%, 0.3);
   }
 
   .dark {
@@ -78,19 +78,19 @@
     --card-foreground: 45 10% 95%;
     --popover: 240 10% 8%;
     --popover-foreground: 45 10% 95%;
-    --primary: 38 92% 50%;
+    --primary: 357 92% 47%;
     --primary-foreground: 240 10% 6%;
     --secondary: 240 8% 18%;
     --secondary-foreground: 45 10% 90%;
     --muted: 240 8% 15%;
     --muted-foreground: 240 5% 55%;
-    --accent: 38 80% 45%;
+    --accent: 0 100% 35%;
     --accent-foreground: 240 10% 6%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
     --border: 240 8% 18%;
     --input: 240 8% 18%;
-    --ring: 38 92% 50%;
+    --ring: 357 92% 47%;
   }
 }
 
@@ -165,7 +165,7 @@
     @apply bg-[hsl(var(--format-vhs)/0.2)] text-[hsl(var(--format-vhs))];
   }
 
-  /* Gold accent text */
+  /* Red accent text */
   .text-gold {
     @apply text-primary;
   }

@@ -108,8 +108,8 @@ export default {
           to: { transform: "scale(1)", opacity: "1" },
         },
         "pulse-glow": {
-          "0%, 100%": { boxShadow: "0 0 20px -5px hsl(38, 92%, 50%, 0.3)" },
-          "50%": { boxShadow: "0 0 30px -5px hsl(38, 92%, 50%, 0.5)" },
+          "0%, 100%": { boxShadow: "0 0 20px -5px hsl(357, 92%, 47%, 0.3)" },
+          "50%": { boxShadow: "0 0 30px -5px hsl(357, 92%, 47%, 0.5)" },
         },
         shimmer: {
           "0%": { backgroundPosition: "-200% 0" },
