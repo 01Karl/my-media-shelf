@@ -1,4 +1,4 @@
-# Welcome to the ScoobyScan project
+# Welcome to the MediaCodex project
 
 ## Project info
 
