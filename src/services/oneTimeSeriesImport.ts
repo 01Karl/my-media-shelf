@@ -8,12 +8,14 @@ const ENABLE_SERIES_IMPORT = true;
 const ENABLE_TMDB_LOOKUP = true;
 const SERIES_IMPORT_SETTING_KEY = 'import:series:gemensamt';
 const MOVIES_IMPORT_SETTING_KEY = 'import:movies:gemensamt';
+const DOCUMENTARIES_IMPORT_SETTING_KEY = 'import:documentaries:gemensamt';
 const TMDB_ENRICH_SETTING_KEY = 'import:tmdb:gemensamt';
 const TARGET_LIBRARY_NAME = 'Gemensamt';
 
 const IMPORT_CSV_PATHS = {
   series: '/imports/series.csv',
   movies: '/imports/movies.csv',
+  documentaries: '/imports/documentaries.csv',
 } as const;
 
 const importCsvCache = new Map<keyof typeof IMPORT_CSV_PATHS, string>();
@@ -139,9 +141,10 @@ export async function runOneTimeSeriesImport(ownerId: string): Promise<{ importe
 
   const shouldUseTmdb = ENABLE_TMDB_LOOKUP && tmdbService.isAvailable();
   const library = await getOrCreateGemensamtLibrary(ownerId);
-  const [seriesCsv, moviesCsv] = await Promise.all([
+  const [seriesCsv, moviesCsv, documentariesCsv] = await Promise.all([
     loadImportCsv('series'),
     loadImportCsv('movies'),
+    loadImportCsv('documentaries'),
   ]);
   const seriesImported = await importFromCsv({
     csv: seriesCsv,
@@ -165,6 +168,17 @@ export async function runOneTimeSeriesImport(ownerId: string): Promise<{ importe
     useTmdbLookup: shouldUseTmdb,
   });
 
+  const documentariesImported = await importFromCsv({
+    csv: documentariesCsv,
+    type: 'documentary',
+    defaultFormat: 'Digital',
+    ownerId,
+    library,
+    settingKey: DOCUMENTARIES_IMPORT_SETTING_KEY,
+    useYearColumn: true,
+    useTmdbLookup: shouldUseTmdb,
+  });
+
   if (shouldUseTmdb) {
     await enrichTmdbForLibrary({
       ownerId,
@@ -173,12 +187,13 @@ export async function runOneTimeSeriesImport(ownerId: string): Promise<{ importe
       delayMs: 750,
       seriesCsv,
       moviesCsv,
+      documentariesCsv,
     });
   }
 
   return {
-    imported: seriesImported + movieImported,
-    skipped: seriesImported === 0 && movieImported === 0 && !shouldUseTmdb,
+    imported: seriesImported + movieImported + documentariesImported,
+    skipped: seriesImported === 0 && movieImported === 0 && documentariesImported === 0 && !shouldUseTmdb,
   };
 }
 
@@ -288,6 +303,7 @@ async function enrichTmdbForLibrary(options: {
   delayMs: number;
   seriesCsv: string;
   moviesCsv: string;
+  documentariesCsv: string;
 }): Promise<void> {
   const hasRun = await getSetting(options.settingKey);
   if (hasRun === 'done') {
@@ -302,7 +318,7 @@ async function enrichTmdbForLibrary(options: {
     ])
   );
 
-  const seriesRows = parseCsvRows(SERIES_CSV).slice(1);
+  const seriesRows = parseCsvRows(options.seriesCsv).slice(1);
   for (const row of seriesRows) {
     const [rawTitle, columnTwo] = row;
     if (!rawTitle) continue;
@@ -320,7 +336,7 @@ async function enrichTmdbForLibrary(options: {
     await sleep(options.delayMs);
   }
 
-  const movieRows = parseCsvRows(MOVIES_CSV).slice(1);
+  const movieRows = parseCsvRows(options.moviesCsv).slice(1);
   for (const row of movieRows) {
     const [rawTitle, maybeYear] = row;
     if (!rawTitle) continue;
@@ -332,6 +348,24 @@ async function enrichTmdbForLibrary(options: {
     if (!existing || existing.tmdbId) continue;
 
     const tmdbId = await lookupTmdbId(cleanTitle, 'movie', year);
+    if (!tmdbId) continue;
+
+    await itemRepository.update(existing.itemId, { tmdbId });
+    await sleep(options.delayMs);
+  }
+
+  const documentaryRows = parseCsvRows(options.documentariesCsv).slice(1);
+  for (const row of documentaryRows) {
+    const [rawTitle, maybeYear] = row;
+    if (!rawTitle) continue;
+
+    const { cleanTitle, year: parsedYear } = parseTitle(rawTitle);
+    const year = Number.isFinite(Number(maybeYear)) ? Number(maybeYear) : parsedYear;
+    const key = createLookupKey(cleanTitle, 'documentary', year);
+    const existing = itemsByKey.get(key);
+    if (!existing || existing.tmdbId) continue;
+
+    const tmdbId = await lookupTmdbId(cleanTitle, 'documentary', year);
     if (!tmdbId) continue;
 
     await itemRepository.update(existing.itemId, { tmdbId });
