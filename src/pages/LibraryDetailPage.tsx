@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Filter, Grid, List, MoreVertical, Pencil, Trash2, Users, Share } from 'lucide-react';
+import { Plus, Filter, Grid, List, MoreVertical, Pencil, Trash2, Users, Share, ScanLine } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { MediaCard } from '@/components/MediaCard';
 import { SeriesCard } from '@/components/SeriesCard';
@@ -233,6 +233,13 @@ export default function LibraryDetailPage() {
         )}
 
         {/* Search and filters */}
+        <Button
+          className="w-full"
+          onClick={() => navigate(`/add?library=${libraryId}&scan=1`)}
+        >
+          <ScanLine className="mr-2 h-4 w-4" />
+          Skanna omslag
+        </Button>
         <SearchInput
           value={searchQuery}
           onChange={setSearchQuery}
