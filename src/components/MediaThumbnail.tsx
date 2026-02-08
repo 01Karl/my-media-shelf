@@ -1,4 +1,4 @@
-// Media thumbnail component - shows a small poster image with fallback
+
 
 import { useEffect, useState } from 'react';
 import { Film } from 'lucide-react';

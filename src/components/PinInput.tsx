@@ -1,4 +1,4 @@
-// PIN input component for local auth
+
 
 import { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
@@ -21,7 +21,7 @@ export function PinInput({
   const [values, setValues] = useState<string[]>(Array(length).fill(''));
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Reset on error
+  
   useEffect(() => {
     if (error) {
       setValues(Array(length).fill(''));
@@ -29,25 +29,25 @@ export function PinInput({
     }
   }, [error, length]);
 
-  // Focus first input on mount
+  
   useEffect(() => {
     inputRefs.current[0]?.focus();
   }, []);
 
   const handleChange = (index: number, value: string) => {
-    // Only allow digits
+    
     if (value && !/^\d$/.test(value)) return;
 
     const newValues = [...values];
     newValues[index] = value;
     setValues(newValues);
 
-    // Move to next input
+    
     if (value && index < length - 1) {
       inputRefs.current[index + 1]?.focus();
     }
 
-    // Check if complete
+    
     if (newValues.every(v => v !== '')) {
       onComplete(newValues.join(''));
     }
@@ -55,7 +55,7 @@ export function PinInput({
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
     if (e.key === 'Backspace' && !values[index] && index > 0) {
-      // Move to previous input on backspace if current is empty
+      
       const newValues = [...values];
       newValues[index - 1] = '';
       setValues(newValues);
@@ -77,7 +77,7 @@ export function PinInput({
       });
       setValues(newValues);
       
-      // Focus appropriate input
+      
       const nextEmptyIndex = newValues.findIndex(v => v === '');
       if (nextEmptyIndex !== -1) {
         inputRefs.current[nextEmptyIndex]?.focus();

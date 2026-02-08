@@ -1,6 +1,6 @@
-// Database initialization and management
-// Uses IndexedDB via 'idb' library for web
-// TODO: Add Capacitor SQLite support for native builds
+
+
+
 
 import { openDB, IDBPDatabase } from 'idb';
 import { MediaLibraryDB, DB_NAME, DB_VERSION } from './schema';
@@ -16,20 +16,20 @@ export async function initDatabase(): Promise<IDBPDatabase<MediaLibraryDB>> {
     upgrade(db, oldVersion, newVersion) {
       console.log(`Upgrading database from v${oldVersion} to v${newVersion}`);
 
-      // Owners store
+      
       if (!db.objectStoreNames.contains('owners')) {
         const ownerStore = db.createObjectStore('owners', { keyPath: 'ownerId' });
         ownerStore.createIndex('by-displayName', 'displayName');
       }
 
-      // Libraries store
+      
       if (!db.objectStoreNames.contains('libraries')) {
         const libraryStore = db.createObjectStore('libraries', { keyPath: 'libraryId' });
         libraryStore.createIndex('by-ownerId', 'ownerId');
         libraryStore.createIndex('by-sharedLibraryId', 'sharedLibraryId');
       }
 
-      // Items store
+      
       if (!db.objectStoreNames.contains('items')) {
         const itemStore = db.createObjectStore('items', { keyPath: 'itemId' });
         itemStore.createIndex('by-libraryId', 'libraryId');
@@ -39,13 +39,13 @@ export async function initDatabase(): Promise<IDBPDatabase<MediaLibraryDB>> {
         itemStore.createIndex('by-title', 'title');
       }
 
-      // TMDB cache store
+      
       if (!db.objectStoreNames.contains('tmdb_cache')) {
         const cacheStore = db.createObjectStore('tmdb_cache', { keyPath: 'tmdbId' });
         cacheStore.createIndex('by-type', 'type');
       }
 
-      // App settings store
+      
       if (!db.objectStoreNames.contains('app_settings')) {
         db.createObjectStore('app_settings', { keyPath: 'key' });
       }
@@ -81,7 +81,7 @@ export async function closeDatabase(): Promise<void> {
   }
 }
 
-// Settings helpers
+
 export async function getSetting(key: string): Promise<string | null> {
   const db = await getDatabase();
   const setting = await db.get('app_settings', key);

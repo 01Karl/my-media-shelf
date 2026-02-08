@@ -1,6 +1,6 @@
-// Database schema definitions
-// This app uses IndexedDB as the primary storage with a clean API via 'idb'
-// In a real Capacitor build, you would use @capacitor-community/sqlite
+
+
+
 
 import { DBSchema } from 'idb';
 import type { Owner, Library, MediaItem, TMDBCache } from '@/types';
@@ -47,7 +47,7 @@ export interface MediaLibraryDB extends DBSchema {
 export const DB_NAME = 'media-library-db';
 export const DB_VERSION = 1;
 
-// SQL schema for reference (when using SQLite via Capacitor)
+
 export const SQL_SCHEMA = `
 -- Owners table
 CREATE TABLE IF NOT EXISTS owners (

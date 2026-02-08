@@ -1,4 +1,4 @@
-// Core types for the media library app
+
 
 export type MediaType = 'movie' | 'series' | 'documentary' | 'other';
 
@@ -7,7 +7,7 @@ export type MediaFormat = 'DVD' | 'Blu-ray' | '4K Blu-ray' | 'Digital' | 'VHS' |
 export interface Owner {
   ownerId: string;
   displayName: string;
-  pinHash?: string; // Hashed PIN for local auth
+  pinHash?: string; 
   createdAt: string;
   updatedAt: string;
 }
@@ -15,10 +15,10 @@ export interface Owner {
 export interface Library {
   libraryId: string;
   ownerId: string;
-  sharedLibraryId: string | null; // UUID for shared/synced libraries
+  sharedLibraryId: string | null; 
   name: string;
   description?: string;
-  icon?: string; // Emoji or icon name
+  icon?: string; 
   createdAt: string;
   updatedAt: string;
 }
@@ -39,9 +39,9 @@ export interface MediaItem {
   ocrTextBack?: string;
   tmdbId?: number;
   notes?: string;
-  audioInfo?: string; // e.g., "Dolby Digital 5.1, DTS"
-  videoInfo?: string; // e.g., "1080p, HDR"
-  languages?: string; // e.g., "English, Swedish"
+  audioInfo?: string; 
+  videoInfo?: string; 
+  languages?: string; 
   subtitles?: string;
   createdAt: string;
   updatedAt: string;
@@ -64,13 +64,13 @@ export interface TMDBData {
   releaseDate?: string;
   voteAverage?: number;
   genres?: string[];
-  runtime?: number; // For movies
-  numberOfSeasons?: number; // For series
+  runtime?: number; 
+  numberOfSeasons?: number; 
 }
 
-// For unified view in shared libraries
+
 export interface UnifiedWork {
-  workId: string; // tmdbId or normalized key
+  workId: string; 
   sharedLibraryId: string;
   tmdbId?: number;
   title: string;
@@ -89,7 +89,7 @@ export interface WorkCopy {
   notes?: string;
 }
 
-// BLE Sync types
+
 export interface BLEDevice {
   id: string;
   name: string;
@@ -140,14 +140,14 @@ export type SyncMessage =
   | SyncTransferItems 
   | SyncDone;
 
-// App state types
+
 export interface AppState {
   isAuthenticated: boolean;
   currentOwner: Owner | null;
   isOnline: boolean;
 }
 
-// OCR result
+
 export interface OCRResult {
   text: string;
   confidence: number;
@@ -155,7 +155,7 @@ export interface OCRResult {
   suggestedYear?: number;
 }
 
-// TMDB search result
+
 export interface TMDBSearchResult {
   id: number;
   title: string;

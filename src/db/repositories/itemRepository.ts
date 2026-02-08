@@ -1,11 +1,11 @@
-// Item repository - manages media items
+
 
 import { v4 as uuidv4 } from 'uuid';
 import { getDatabase } from '../database';
 import type { MediaItem, MediaType, MediaFormat, UnifiedWork, WorkCopy } from '@/types';
 import { ownerRepository } from './ownerRepository';
 
-// Normalize title for matching
+
 function normalizeTitle(title: string): string {
   return title
     .toLowerCase()
@@ -14,7 +14,7 @@ function normalizeTitle(title: string): string {
     .replace(/\s+/g, ' ');
 }
 
-// Create a unique key for matching works without TMDB ID
+
 function createWorkKey(item: MediaItem): string {
   const normalized = normalizeTitle(item.title);
   return `${normalized}|${item.year || 'unknown'}|${item.type}|${item.season || 0}`;
@@ -143,13 +143,13 @@ export const itemRepository = {
     return true;
   },
 
-  // Get unified works for a shared library (groups items by work)
+  
   async getUnifiedWorks(sharedLibraryId: string): Promise<UnifiedWork[]> {
     const items = await this.getBySharedLibrary(sharedLibraryId);
     const owners = await ownerRepository.getAll();
     const ownerMap = new Map(owners.map(o => [o.ownerId, o.displayName]));
     
-    // Group by tmdbId or normalized key
+    
     const workMap = new Map<string, UnifiedWork>();
     
     for (const item of items) {
@@ -181,19 +181,19 @@ export const itemRepository = {
     return Array.from(workMap.values());
   },
 
-  // For BLE sync - add or update item from remote
+  
   async upsertForSync(item: MediaItem, localLibraryId: string): Promise<{ item: MediaItem; isNew: boolean }> {
     const db = await getDatabase();
     
-    // Check if we already have this exact item (by itemId)
+    
     const existing = await db.get('items', item.itemId);
     
     if (existing) {
-      // Update if remote is newer
+      
       if (new Date(item.updatedAt) > new Date(existing.updatedAt)) {
         const updated: MediaItem = {
           ...item,
-          libraryId: localLibraryId, // Keep local library ID
+          libraryId: localLibraryId, 
         };
         await db.put('items', updated);
         return { item: updated, isNew: false };
@@ -201,16 +201,16 @@ export const itemRepository = {
       return { item: existing, isNew: false };
     }
     
-    // Add new item
+    
     const newItem: MediaItem = {
       ...item,
-      libraryId: localLibraryId, // Set to local library ID
+      libraryId: localLibraryId, 
     };
     await db.add('items', newItem);
     return { item: newItem, isNew: true };
   },
 
-  // Get items for sync export
+  
   async getForSync(sharedLibraryId: string): Promise<MediaItem[]> {
     return this.getBySharedLibrary(sharedLibraryId);
   },

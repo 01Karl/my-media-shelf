@@ -9,7 +9,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { App as CapacitorApp } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
 
-// Pages
+
 import AuthPage from "./pages/AuthPage";
 import CreateUserPage from "./pages/CreateUserPage";
 import HomePage from "./pages/HomePage";
@@ -61,11 +61,11 @@ function AppContent() {
   return (
     <>
       <Routes>
-        {/* Auth routes */}
+        
         <Route path="/auth" element={!isAuthenticated ? <AuthPage /> : <Navigate to="/" />} />
         <Route path="/auth/create" element={<CreateUserPage />} />
         
-        {/* Protected routes */}
+        
         <Route path="/" element={isAuthenticated ? <HomePage /> : <Navigate to="/auth" />} />
         <Route path="/libraries" element={isAuthenticated ? <LibrariesPage /> : <Navigate to="/auth" />} />
         <Route path="/libraries/create" element={isAuthenticated ? <CreateLibraryPage /> : <Navigate to="/auth" />} />

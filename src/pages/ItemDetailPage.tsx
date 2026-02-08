@@ -1,4 +1,4 @@
-// Item detail page
+
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -54,21 +54,21 @@ export default function ItemDetailPage() {
       setItem(itemData);
 
       if (itemData) {
-        // Load library
+        
         const lib = await libraryRepository.getById(itemData.libraryId);
         setLibrary(lib);
 
-        // Load owner
+        
         const own = await ownerRepository.getById(itemData.ownerId);
         setOwner(own);
 
-        // Load TMDB data
+        
         if (itemData.tmdbId) {
           const cached = await tmdbCacheRepository.get(itemData.tmdbId);
           if (cached) {
             setTmdbData(cached);
           } else {
-            // Try to fetch from API
+            
             const data = await tmdbService.getDetails(itemData.tmdbId, itemData.type);
             if (data) {
               setTmdbData(data);
@@ -76,7 +76,7 @@ export default function ItemDetailPage() {
           }
         }
 
-        // Load images
+        
         if (itemData.frontImagePath) {
           const img = await storageService.loadImage(itemData.frontImagePath);
           setFrontImageUrl(img);
@@ -97,7 +97,7 @@ export default function ItemDetailPage() {
     if (!item) return;
     
     if (confirm(`Är du säker på att du vill ta bort "${item.title}"?`)) {
-      // Delete images
+      
       if (item.frontImagePath) {
         await storageService.deleteImage(item.frontImagePath);
       }
@@ -183,7 +183,7 @@ export default function ItemDetailPage() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Hero image */}
+      
       <div className="relative h-[45vh] bg-secondary overflow-hidden">
         {displayImage ? (
           <img
@@ -203,10 +203,10 @@ export default function ItemDetailPage() {
           </div>
         )}
         
-        {/* Gradient overlay */}
+        
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
 
-        {/* Navigation */}
+        
         <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between safe-area-top">
           <Button
             variant="ghost"
@@ -245,7 +245,7 @@ export default function ItemDetailPage() {
           </DropdownMenu>
         </div>
 
-        {/* Image selector */}
+        
         {(frontImageUrl || backImageUrl || posterUrl) && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
             {frontImageUrl && (
@@ -282,14 +282,14 @@ export default function ItemDetailPage() {
         )}
       </div>
 
-      {/* Content */}
+      
       <div className="px-4 -mt-16 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-6"
         >
-          {/* Title section */}
+          
           <div>
             <div className="flex items-center gap-2 mb-2">
               <TypeBadge type={item.type} />
@@ -315,7 +315,7 @@ export default function ItemDetailPage() {
             </div>
           </div>
 
-          {/* TMDB rating */}
+          
           {tmdbData?.voteAverage && (
             <div className="flex items-center gap-2 p-3 rounded-lg bg-card border border-border">
               <Star className="w-5 h-5 text-primary fill-primary" />
@@ -324,7 +324,7 @@ export default function ItemDetailPage() {
             </div>
           )}
 
-          {/* Overview */}
+          
           {tmdbData?.overview && (
             <div>
               <h3 className="font-semibold mb-2">Beskrivning</h3>
@@ -334,7 +334,7 @@ export default function ItemDetailPage() {
             </div>
           )}
 
-          {/* Technical details */}
+          
           <div className="space-y-3">
             <h3 className="font-semibold">Tekniska detaljer</h3>
             
@@ -381,7 +381,7 @@ export default function ItemDetailPage() {
             </div>
           </div>
 
-          {/* Genres */}
+          
           {tmdbData?.genres && tmdbData.genres.length > 0 && (
             <div>
               <h3 className="font-semibold mb-2">Genres</h3>
@@ -398,7 +398,7 @@ export default function ItemDetailPage() {
             </div>
           )}
 
-          {/* Notes */}
+          
           {item.notes && (
             <div>
               <h3 className="font-semibold mb-2">Anteckningar</h3>
@@ -408,7 +408,7 @@ export default function ItemDetailPage() {
             </div>
           )}
 
-          {/* Ownership info */}
+          
           <div className="p-4 rounded-lg bg-card border border-border">
             <h3 className="font-semibold mb-3">Ägarskap</h3>
             <div className="flex items-center justify-between">
@@ -422,7 +422,7 @@ export default function ItemDetailPage() {
             </div>
           </div>
 
-          {/* TMDB link */}
+          
           {item.tmdbId && (
             <Button
               variant="outline"
@@ -467,7 +467,7 @@ export default function ItemDetailPage() {
             </div>
           )}
 
-          {/* Metadata */}
+          
           <div className="text-xs text-muted-foreground border-t border-border pt-4">
             <p>Tillagd: {new Date(item.createdAt).toLocaleDateString('sv-SE')}</p>
             <p>Senast ändrad: {new Date(item.updatedAt).toLocaleDateString('sv-SE')}</p>

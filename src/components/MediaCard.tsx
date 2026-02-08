@@ -1,4 +1,4 @@
-// Media card component - displays a single media item
+
 
 import { motion } from 'framer-motion';
 import { Film, ImageOff } from 'lucide-react';
@@ -24,7 +24,7 @@ export function MediaCard({ item, tmdbData, onClick, className }: MediaCardProps
     const loadImage = async () => {
       setIsLoading(true);
       
-      // Try TMDB poster first
+      
       if (tmdbData?.posterPath) {
         const url = tmdbService.getImageUrl(tmdbData.posterPath, 'w342');
         if (url) {
@@ -34,7 +34,7 @@ export function MediaCard({ item, tmdbData, onClick, className }: MediaCardProps
         }
       }
       
-      // Fall back to local front image
+      
       if (item.frontImagePath) {
         try {
           const localImage = await storageService.loadImage(item.frontImagePath);
@@ -63,7 +63,7 @@ export function MediaCard({ item, tmdbData, onClick, className }: MediaCardProps
       )}
       onClick={onClick}
     >
-      {/* Image container */}
+      
       <div className="relative aspect-[2/3] bg-secondary overflow-hidden">
         {isLoading ? (
           <div className="absolute inset-0 bg-secondary animate-pulse" />
@@ -81,15 +81,15 @@ export function MediaCard({ item, tmdbData, onClick, className }: MediaCardProps
           </div>
         )}
         
-        {/* Gradient overlay */}
+        
         <div className="absolute inset-0 media-card-overlay pointer-events-none" />
         
-        {/* Format badge */}
+        
         <div className="absolute top-2 right-2">
           <FormatBadge format={item.format} />
         </div>
         
-        {/* Title overlay at bottom */}
+        
         <div className="absolute bottom-0 left-0 right-0 p-3">
           <h3 className="font-semibold text-foreground line-clamp-2 text-sm leading-tight">
             {item.title}

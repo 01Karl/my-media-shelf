@@ -1,4 +1,4 @@
-// Series card component - displays a grouped TV series
+
 
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';

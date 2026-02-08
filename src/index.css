@@ -2,11 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Cinema-inspired dark design system with red accents */
+
 
 @layer base {
   :root {
-    /* Dark cinema theme - always dark for this app */
+    
     --background: 240 10% 6%;
     --foreground: 45 10% 95%;
 
@@ -16,7 +16,7 @@
     --popover: 240 10% 8%;
     --popover-foreground: 45 10% 95%;
 
-    /* Red primary - classic cinema */
+    
     --primary: 357 92% 47%;
     --primary-foreground: 240 10% 6%;
 
@@ -41,7 +41,7 @@
 
     --radius: 0.75rem;
 
-    /* Format colors */
+    
     --format-dvd: 200 80% 55%;
     --format-bluray: 217 91% 60%;
     --format-4k: 280 75% 60%;
@@ -49,7 +49,7 @@
     --format-vhs: 25 80% 50%;
     --format-other: 240 5% 50%;
 
-    /* Sidebar - keeping dark */
+    
     --sidebar-background: 240 10% 8%;
     --sidebar-foreground: 45 10% 90%;
     --sidebar-primary: 357 92% 47%;
@@ -59,19 +59,19 @@
     --sidebar-border: 240 8% 18%;
     --sidebar-ring: 357 92% 47%;
 
-    /* Gradients */
+    
     --gradient-gold: linear-gradient(135deg, hsl(357, 92%, 47%), hsl(0, 100%, 35%));
     --gradient-card: linear-gradient(180deg, hsl(240, 10%, 12%), hsl(240, 10%, 8%));
     --gradient-overlay: linear-gradient(180deg, transparent 0%, hsl(240, 10%, 6%, 0.9) 100%);
     
-    /* Shadows */
+    
     --shadow-card: 0 4px 24px -4px hsl(0, 0%, 0%, 0.5);
     --shadow-elevated: 0 8px 32px -8px hsl(0, 0%, 0%, 0.6);
     --shadow-glow: 0 0 40px -10px hsl(357, 92%, 47%, 0.3);
   }
 
   .dark {
-    /* Same as root - always dark */
+    
     --background: 240 10% 6%;
     --foreground: 45 10% 95%;
     --card: 240 10% 10%;
@@ -104,13 +104,13 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* Mobile app feel */
+    
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
   }
 
-  /* Safe area handling for mobile */
+  
   .safe-area-top {
     padding-top: env(safe-area-inset-top, 0);
   }
@@ -121,7 +121,7 @@
 }
 
 @layer components {
-  /* Media card styling */
+  
   .media-card {
     @apply relative overflow-hidden rounded-lg bg-card;
     box-shadow: var(--shadow-card);
@@ -140,7 +140,7 @@
     background: var(--gradient-overlay);
   }
 
-  /* Format badge styling */
+  
   .format-badge {
     @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
   }
@@ -165,24 +165,24 @@
     @apply bg-[hsl(var(--format-vhs)/0.2)] text-[hsl(var(--format-vhs))];
   }
 
-  /* Red accent text */
+  
   .text-gold {
     @apply text-primary;
   }
 
-  /* Glass effect for modals */
+  
   .glass {
     @apply bg-card/80 backdrop-blur-xl border border-border;
   }
 
-  /* PIN input styling */
+  
   .pin-input {
     @apply w-12 h-14 text-center text-2xl font-bold bg-secondary border-2 border-border rounded-lg;
     @apply focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none;
     @apply transition-all duration-200;
   }
 
-  /* Bottom navigation */
+  
   .bottom-nav {
     @apply fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border;
     padding-bottom: env(safe-area-inset-bottom, 0);
@@ -197,7 +197,7 @@
     @apply text-primary;
   }
 
-  /* Floating action button */
+  
   .fab {
     @apply fixed bottom-24 right-4 w-14 h-14 rounded-full;
     @apply bg-primary text-primary-foreground shadow-lg;
@@ -210,18 +210,18 @@
     transform: scale(0.95);
   }
 
-  /* Page container */
+  
   .page-container {
     @apply min-h-screen pb-20 safe-area-top safe-area-bottom;
   }
 
-  /* Header styling */
+  
   .app-header {
     @apply sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border;
     padding-top: env(safe-area-inset-top, 0);
   }
 
-  /* Search input */
+  
   .search-input {
     @apply w-full bg-secondary border-none rounded-full px-4 py-2.5;
     @apply text-foreground placeholder:text-muted-foreground;
@@ -230,7 +230,7 @@
 }
 
 @layer utilities {
-  /* Hide scrollbar but keep functionality */
+  
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -240,7 +240,7 @@
     display: none;
   }
 
-  /* Gradient text */
+  
   .gradient-text {
     background: var(--gradient-gold);
     -webkit-background-clip: text;

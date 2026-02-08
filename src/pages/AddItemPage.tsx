@@ -1,4 +1,4 @@
-// Add item page - multi-step flow for adding media items
+
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -68,7 +68,7 @@ export default function AddItemPage() {
   const { currentOwner } = useAppStore();
   const scanMode = searchParams.get('scan') === '1';
 
-  // State
+  
   const [step, setStep] = useState<Step>('select-library');
   const [libraries, setLibraries] = useState<Library[]>([]);
   const [selectedLibrary, setSelectedLibrary] = useState<Library | null>(null);
@@ -81,7 +81,7 @@ export default function AddItemPage() {
   const [scanMatches, setScanMatches] = useState<MediaItem[]>([]);
   const [cameraError, setCameraError] = useState<string | null>(null);
   
-  // Metadata
+  
   const [title, setTitle] = useState('');
   const [year, setYear] = useState('');
   const [season, setSeason] = useState('');
@@ -89,7 +89,7 @@ export default function AddItemPage() {
   const [videoInfo, setVideoInfo] = useState('');
   const [notes, setNotes] = useState('');
   
-  // TMDB
+  
   const [tmdbResults, setTmdbResults] = useState<TMDBSearchResult[]>([]);
   const [selectedTmdb, setSelectedTmdb] = useState<TMDBSearchResult | null>(null);
 
@@ -105,14 +105,14 @@ export default function AddItemPage() {
   const [isLiveCameraActive, setIsLiveCameraActive] = useState(false);
   const [liveCameraError, setLiveCameraError] = useState<string | null>(null);
 
-  // Load libraries
+  
   useEffect(() => {
     const loadLibraries = async () => {
       if (!currentOwner) return;
       const libs = await libraryRepository.getByOwner(currentOwner.ownerId);
       setLibraries(libs);
 
-      // Pre-select library from URL param
+      
       const libraryId = searchParams.get('library');
       if (libraryId) {
         const lib = libs.find(l => l.libraryId === libraryId);
@@ -125,7 +125,7 @@ export default function AddItemPage() {
     loadLibraries();
   }, [currentOwner, scanMode, searchParams]);
 
-  // Capture front image
+  
   const handleCaptureFront = async () => {
     setCameraError(null);
     const image = await cameraService.capturePhoto();
@@ -136,7 +136,7 @@ export default function AddItemPage() {
     }
   };
 
-  // Capture back image
+  
   const handleCaptureBack = async () => {
     setCameraError(null);
     const image = await cameraService.capturePhoto();
@@ -235,7 +235,7 @@ export default function AddItemPage() {
     await handleProcessImages(frame, backImage);
   };
 
-  // Process OCR and proceed
+  
   const handleProcessImages = async (overrideFront?: string | null, overrideBack?: string | null) => {
     setIsProcessingOcr(true);
     
@@ -283,7 +283,7 @@ export default function AddItemPage() {
     setStep('edit-details');
   };
 
-  // Search TMDB
+  
   const handleSearchTmdb = async () => {
     if (!title.trim()) return;
     
@@ -300,7 +300,7 @@ export default function AddItemPage() {
     setIsSearchingTmdb(false);
   };
 
-  // Save item
+  
   const performSave = async () => {
     if (!selectedLibrary || !currentOwner || !title.trim()) return;
 
@@ -332,10 +332,10 @@ export default function AddItemPage() {
         }
       }
 
-      // Generate item ID first
+      
       const itemId = crypto.randomUUID();
       
-      // Save images
+      
       let frontImagePath: string | undefined;
       let backImagePath: string | undefined;
       
@@ -346,7 +346,7 @@ export default function AddItemPage() {
         backImagePath = await storageService.saveImage(backImage, itemId, 'back');
       }
       
-      // Create item
+      
       await itemRepository.create(
         selectedLibrary.libraryId,
         currentOwner.ownerId,
@@ -366,10 +366,10 @@ export default function AddItemPage() {
         selectedLibrary.sharedLibraryId
       );
       
-      // If TMDB was selected, cache the data
+      
       if (selectedTmdb) {
         const details = await tmdbService.getDetails(selectedTmdb.id, mediaType);
-        // Details are automatically cached by the service
+        
       }
       
       navigate(`/libraries/${selectedLibrary.libraryId}`);
@@ -965,7 +965,7 @@ export default function AddItemPage() {
                 variant="outline"
                 className="flex-1"
                 onClick={() => {
-                  // Skip TMDB and go to confirm
+                  
                   setStep('confirm');
                 }}
               >
@@ -1092,7 +1092,7 @@ export default function AddItemPage() {
             <h2 className="text-lg font-semibold">Bekräfta</h2>
             
             <div className="bg-card rounded-xl border border-border p-4 space-y-4">
-              {/* Preview image */}
+              
               {(frontImage || selectedTmdb?.posterPath) && (
                 <div className="flex justify-center">
                   <img
@@ -1203,7 +1203,7 @@ export default function AddItemPage() {
         backPath={selectedLibrary ? `/libraries/${selectedLibrary.libraryId}` : '/libraries'}
       />
 
-      {/* Progress indicator */}
+      
       <div className="px-4 py-3">
         <div className="flex items-center gap-2">
           {[

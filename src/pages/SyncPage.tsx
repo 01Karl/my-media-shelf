@@ -1,4 +1,4 @@
-// Sync page - BLE sync interface
+
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -34,7 +34,7 @@ export default function SyncPage() {
   const [error, setError] = useState<string | null>(null);
   const [syncSummary, setSyncSummary] = useState<{ added: number; updated: number; matched: number } | null>(null);
 
-  // Subscribe to sync state changes
+  
   useEffect(() => {
     const unsubscribe = bleSyncService.subscribe((state) => {
       setSyncState(state);
@@ -42,7 +42,7 @@ export default function SyncPage() {
     return unsubscribe;
   }, []);
 
-  // Load shared libraries
+  
   useEffect(() => {
     const loadLibraries = async () => {
       if (!currentOwner) return;
@@ -51,7 +51,7 @@ export default function SyncPage() {
       const sharedLibs = allLibs.filter(lib => lib.sharedLibraryId);
       setLibraries(sharedLibs);
 
-      // Pre-select library from URL param
+      
       const libraryId = searchParams.get('library');
       if (libraryId) {
         const lib = sharedLibs.find(l => l.libraryId === libraryId);

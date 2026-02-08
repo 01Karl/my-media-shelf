@@ -1,4 +1,4 @@
-// Bottom navigation component
+
 
 import { Home, Library, Plus, Bluetooth, Settings } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -23,7 +23,7 @@ export function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Don't show on auth pages
+  
   if (location.pathname.startsWith('/auth')) {
     return null;
   }

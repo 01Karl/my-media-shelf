@@ -1,4 +1,4 @@
-// Library repository - manages media libraries
+
 
 import { v4 as uuidv4 } from 'uuid';
 import { getDatabase } from '../database';
@@ -91,7 +91,7 @@ export const libraryRepository = {
     
     if (!existing) return false;
     
-    // Also delete all items in this library
+    
     const items = await db.getAllFromIndex('items', 'by-libraryId', libraryId);
     const tx = db.transaction(['libraries', 'items'], 'readwrite');
     
@@ -111,27 +111,27 @@ export const libraryRepository = {
     return items.length;
   },
 
-  // For BLE sync
+  
   async upsertForSync(library: Library, localOwnerId: string): Promise<Library> {
     const db = await getDatabase();
     
-    // Check if we have a library with the same sharedLibraryId
+    
     if (library.sharedLibraryId) {
       const existingShared = await this.getBySharedId(library.sharedLibraryId);
       const localVersion = existingShared.find(lib => lib.ownerId === localOwnerId);
       
       if (localVersion) {
-        // We already have this shared library, return it
+        
         return localVersion;
       }
     }
     
-    // Create a new library entry for this shared library
+    
     const now = new Date().toISOString();
     const newLibrary: Library = {
       ...library,
-      libraryId: uuidv4(), // New local ID
-      ownerId: localOwnerId, // Set to local owner
+      libraryId: uuidv4(), 
+      ownerId: localOwnerId, 
       updatedAt: now,
     };
     
