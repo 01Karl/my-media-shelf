@@ -39,9 +39,10 @@ import type { Library, MediaType, MediaFormat, MediaItem, TMDBSearchResult } fro
 type Step =
   | 'select-library'
   | 'select-type'
+  | 'enter-basics'
   | 'capture-images'
   | 'scan-check'
-  | 'edit-metadata'
+  | 'edit-details'
   | 'tmdb-match'
   | 'confirm';
 
@@ -214,7 +215,7 @@ export default function AddItemPage() {
     }
     
     setIsProcessingOcr(false);
-    setStep('edit-metadata');
+    setStep('edit-details');
   };
 
   // Search TMDB
@@ -440,11 +441,87 @@ export default function AddItemPage() {
             <Button 
               className="w-full" 
               size="lg"
-              onClick={() => setStep('capture-images')}
+              onClick={() => setStep('enter-basics')}
             >
               Fortsätt
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
+          </motion.div>
+        );
+
+      case 'enter-basics':
+        return (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-5"
+          >
+            <div>
+              <h2 className="text-lg font-semibold">Grundinfo</h2>
+              <p className="text-sm text-muted-foreground">
+                Fyll i det viktigaste först. Omslag kan läggas till senare.
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="title">Titel *</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ange titel"
+                className="mt-1"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="year">År</Label>
+                <Input
+                  id="year"
+                  type="number"
+                  value={year}
+                  onChange={(e) => setYear(e.target.value)}
+                  placeholder="2024"
+                  className="mt-1"
+                />
+              </div>
+              {mediaType === 'series' && (
+                <div>
+                  <Label htmlFor="season">Säsong</Label>
+                  <Input
+                    id="season"
+                    type="number"
+                    value={season}
+                    onChange={(e) => setSeason(e.target.value)}
+                    placeholder="1"
+                    className="mt-1"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
+              Tips: Om du fotar omslaget kan vi läsa av titel och år automatiskt.
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setStep('edit-details')}
+              >
+                Hoppa över omslag
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={() => setStep('capture-images')}
+              >
+                Lägg till omslag
+                <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
           </motion.div>
         );
 
@@ -582,7 +659,7 @@ export default function AddItemPage() {
               <Button
                 variant="outline"
                 className="flex-1"
-                onClick={() => setStep('edit-metadata')}
+                onClick={() => setStep('edit-details')}
               >
                 Hoppa över
               </Button>
@@ -693,16 +770,16 @@ export default function AddItemPage() {
               </Button>
               <Button
                 className="flex-1"
-                onClick={() => setStep('edit-metadata')}
+                onClick={() => setStep('edit-details')}
               >
-                {scanMatches.length > 0 ? 'Lägg till version' : 'Lägg till'}
+                {scanMatches.length > 0 ? 'Fortsätt till detaljer' : 'Fortsätt'}
               </Button>
             </div>
           </motion.div>
         );
       }
 
-      case 'edit-metadata':
+      case 'edit-details':
         return (
           <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -710,44 +787,32 @@ export default function AddItemPage() {
             exit={{ opacity: 0, x: -20 }}
             className="space-y-4"
           >
-            <h2 className="text-lg font-semibold">Detaljer</h2>
-            
             <div>
-              <Label htmlFor="title">Titel *</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ange titel"
-                className="mt-1"
-              />
+              <h2 className="text-lg font-semibold">Detaljer</h2>
+              <p className="text-sm text-muted-foreground">
+                Lägg till teknisk info och anteckningar. Du kan alltid justera senare.
+              </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="year">År</Label>
-                <Input
-                  id="year"
-                  type="number"
-                  value={year}
-                  onChange={(e) => setYear(e.target.value)}
-                  placeholder="2024"
-                  className="mt-1"
-                />
-              </div>
-              {mediaType === 'series' && (
+            <div className="rounded-xl border border-border bg-card p-4">
+              <div className="flex items-start justify-between gap-4">
                 <div>
-                  <Label htmlFor="season">Säsong</Label>
-                  <Input
-                    id="season"
-                    type="number"
-                    value={season}
-                    onChange={(e) => setSeason(e.target.value)}
-                    placeholder="1"
-                    className="mt-1"
-                  />
+                  <p className="text-sm text-muted-foreground">Grundinfo</p>
+                  <p className="text-base font-semibold">{title || 'Titel saknas'}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {year && `År ${year}`}
+                    {season && ` • Säsong ${season}`}
+                    {!year && !season && 'Ingen extra info'}
+                  </p>
                 </div>
-              )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setStep('enter-basics')}
+                >
+                  Redigera
+                </Button>
+              </div>
             </div>
 
             <div>
@@ -784,7 +849,14 @@ export default function AddItemPage() {
               />
             </div>
 
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setStep('capture-images')}
+              >
+                Tillbaka
+              </Button>
               <Button
                 variant="outline"
                 className="flex-1"
@@ -948,7 +1020,7 @@ export default function AddItemPage() {
               <Button
                 variant="outline"
                 className="flex-1"
-                onClick={() => setStep('edit-metadata')}
+                onClick={() => setStep('edit-details')}
               >
                 Tillbaka
               </Button>
@@ -1021,13 +1093,22 @@ export default function AddItemPage() {
       {/* Progress indicator */}
       <div className="px-4 py-3">
         <div className="flex items-center gap-2">
-          {['select-library', 'select-type', 'capture-images', 'scan-check', 'edit-metadata', 'confirm'].map((s, i) => {
+          {[
+            'select-library',
+            'select-type',
+            'enter-basics',
+            'capture-images',
+            'scan-check',
+            'edit-details',
+            'confirm',
+          ].map((s, i) => {
             const steps = [
               'select-library',
               'select-type',
+              'enter-basics',
               'capture-images',
               'scan-check',
-              'edit-metadata',
+              'edit-details',
               'tmdb-match',
               'confirm',
             ];
