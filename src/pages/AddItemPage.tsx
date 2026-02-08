@@ -1,12 +1,12 @@
 // Add item page - multi-step flow for adding media items
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Camera, Image, Film, Tv, HelpCircle, 
+  Camera, Image, Film, Tv, HelpCircle,
   ChevronRight, Check, Search, Loader2,
-  RotateCcw, Sparkles
+  Sparkles
 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { FormatBadge } from '@/components/FormatBadge';
@@ -39,9 +39,10 @@ import type { Library, MediaType, MediaFormat, MediaItem, TMDBSearchResult } fro
 type Step =
   | 'select-library'
   | 'select-type'
+  | 'enter-basics'
   | 'capture-images'
   | 'scan-check'
-  | 'edit-metadata'
+  | 'edit-details'
   | 'tmdb-match'
   | 'confirm';
 
@@ -76,10 +77,7 @@ export default function AddItemPage() {
   const [isProcessingOcr, setIsProcessingOcr] = useState(false);
   const [isCheckingLibrary, setIsCheckingLibrary] = useState(false);
   const [scanMatches, setScanMatches] = useState<MediaItem[]>([]);
-  const [isLiveCameraActive, setIsLiveCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const liveVideoRef = useRef<HTMLVideoElement | null>(null);
-  const liveStreamRef = useRef<MediaStream | null>(null);
   
   // Metadata
   const [title, setTitle] = useState('');
@@ -122,51 +120,30 @@ export default function AddItemPage() {
 
   // Capture front image
   const handleCaptureFront = async () => {
+    setCameraError(null);
     const image = await cameraService.capturePhoto();
     if (image) {
       setFrontImage(image.dataUrl);
+    } else {
+      setCameraError('Ingen bild togs. Försök igen när kameran är redo.');
     }
   };
 
   // Capture back image
   const handleCaptureBack = async () => {
+    setCameraError(null);
     const image = await cameraService.capturePhoto();
     if (image) {
       setBackImage(image.dataUrl);
-    }
-  };
-
-  const stopLiveCamera = () => {
-    liveStreamRef.current?.getTracks().forEach((track) => track.stop());
-    liveStreamRef.current = null;
-    setIsLiveCameraActive(false);
-  };
-
-  const startLiveCamera = async () => {
-    try {
-      setCameraError(null);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-        audio: false,
-      });
-      liveStreamRef.current = stream;
-      if (liveVideoRef.current) {
-        liveVideoRef.current.srcObject = stream;
-        await liveVideoRef.current.play();
-      }
-      setIsLiveCameraActive(true);
-    } catch (error) {
-      console.error('Failed to start live camera:', error);
-      setCameraError('Kameran kunde inte startas. Kontrollera behörigheter.');
+    } else {
+      setCameraError('Ingen bild togs. Försök igen när kameran är redo.');
     }
   };
 
   useEffect(() => {
     if (step !== 'capture-images') {
-      stopLiveCamera();
+      setCameraError(null);
     }
-
-    return () => stopLiveCamera();
   }, [step]);
 
   // Process OCR and proceed
@@ -214,7 +191,7 @@ export default function AddItemPage() {
     }
     
     setIsProcessingOcr(false);
-    setStep('edit-metadata');
+    setStep('edit-details');
   };
 
   // Search TMDB
@@ -397,21 +374,42 @@ export default function AddItemPage() {
           >
             <div>
               <h2 className="text-lg font-semibold mb-4">Typ av media</h2>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid gap-3">
                 {MEDIA_TYPES.map((type) => {
                   const Icon = type.icon;
+                  const isActive = mediaType === type.value;
                   return (
                     <button
                       key={type.value}
                       onClick={() => setMediaType(type.value)}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all ${
-                        mediaType === type.value
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-card border-border hover:bg-secondary/50'
+                      className={`flex items-center gap-4 rounded-2xl border p-4 text-left transition-all ${
+                        isActive
+                          ? 'border-primary bg-primary/10 shadow-sm'
+                          : 'border-border bg-card hover:bg-secondary/40'
                       }`}
                     >
-                      <Icon className="w-8 h-8" />
-                      <span className="text-sm font-medium">{type.label}</span>
+                      <div
+                        className={`flex h-12 w-12 items-center justify-center rounded-xl ${
+                          isActive ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'
+                        }`}
+                      >
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-base font-semibold">{type.label}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {type.value === 'movie'
+                            ? 'Lägg till en film i biblioteket.'
+                            : type.value === 'series'
+                              ? 'Säsonger, boxar och TV-serier.'
+                              : 'Allt som inte passar i film eller serie.'}
+                        </p>
+                      </div>
+                      {isActive && (
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                          <Check className="h-4 w-4" />
+                        </div>
+                      )}
                     </button>
                   );
                 })}
@@ -420,15 +418,15 @@ export default function AddItemPage() {
 
             <div>
               <h2 className="text-lg font-semibold mb-4">Format</h2>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="flex flex-wrap gap-2">
                 {MEDIA_FORMATS.map((f) => (
                   <button
                     key={f.value}
                     onClick={() => setFormat(f.value)}
-                    className={`p-3 rounded-xl border text-sm font-medium transition-all ${
+                    className={`rounded-full border px-4 py-2 text-sm font-medium transition-all ${
                       format === f.value
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-card border-border hover:bg-secondary/50'
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border bg-card hover:bg-secondary/50'
                     }`}
                   >
                     {f.label}
@@ -440,11 +438,87 @@ export default function AddItemPage() {
             <Button 
               className="w-full" 
               size="lg"
-              onClick={() => setStep('capture-images')}
+              onClick={() => setStep('enter-basics')}
             >
               Fortsätt
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
+          </motion.div>
+        );
+
+      case 'enter-basics':
+        return (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-5"
+          >
+            <div>
+              <h2 className="text-lg font-semibold">Grundinfo</h2>
+              <p className="text-sm text-muted-foreground">
+                Fyll i det viktigaste först. Omslag kan läggas till senare.
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="title">Titel *</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ange titel"
+                className="mt-1"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="year">År</Label>
+                <Input
+                  id="year"
+                  type="number"
+                  value={year}
+                  onChange={(e) => setYear(e.target.value)}
+                  placeholder="2024"
+                  className="mt-1"
+                />
+              </div>
+              {mediaType === 'series' && (
+                <div>
+                  <Label htmlFor="season">Säsong</Label>
+                  <Input
+                    id="season"
+                    type="number"
+                    value={season}
+                    onChange={(e) => setSeason(e.target.value)}
+                    placeholder="1"
+                    className="mt-1"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
+              Tips: Om du fotar omslaget kan vi läsa av titel och år automatiskt.
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setStep('edit-details')}
+              >
+                Hoppa över omslag
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={() => setStep('capture-images')}
+              >
+                Lägg till omslag
+                <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
           </motion.div>
         );
 
@@ -456,133 +530,82 @@ export default function AddItemPage() {
             exit={{ opacity: 0, x: -20 }}
             className="space-y-6"
           >
-            <h2 className="text-lg font-semibold">Fota omslaget</h2>
-
-            <div className="space-y-3">
-              <div className="rounded-xl border border-border bg-card overflow-hidden">
-                {isLiveCameraActive ? (
-                  <video
-                    ref={liveVideoRef}
-                    className="w-full aspect-video object-cover"
-                    muted
-                    playsInline
-                  />
-                ) : (
-                  <div className="w-full aspect-video flex items-center justify-center text-sm text-muted-foreground">
-                    Livekamera är avstängd
-                  </div>
-                )}
-              </div>
-              {cameraError && (
-                <p className="text-sm text-destructive">{cameraError}</p>
-              )}
-              <div className="flex gap-3">
-                {isLiveCameraActive ? (
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={stopLiveCamera}
-                  >
-                    Stäng livekamera
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={startLiveCamera}
-                  >
-                    Starta livekamera
-                  </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  className="flex-1"
-                  onClick={() => {
-                    setFrontImage(null);
-                    setBackImage(null);
-                  }}
-                >
-                  Rensa bilder
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Livekameran hjälper dig att rikta omslaget innan du tar bilden.
+            <div>
+              <h2 className="text-lg font-semibold">Hitta omslag</h2>
+              <p className="text-sm text-muted-foreground">
+                Lägg till ett tydligt omslag. Vi plockar titel och år när det går.
               </p>
             </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              {/* Front image */}
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">Framsida</p>
-                <button
-                  onClick={handleCaptureFront}
-                  className="w-full aspect-[2/3] rounded-xl border-2 border-dashed border-border bg-secondary/30 flex flex-col items-center justify-center gap-2 overflow-hidden hover:border-primary/50 transition-colors"
-                >
+
+            <div className="grid gap-4">
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Omslag (framsida)</p>
+                    <p className="text-base font-semibold">Primär bild</p>
+                    <p className="text-sm text-muted-foreground">
+                      Fota eller byt ut omslaget om det behövs.
+                    </p>
+                  </div>
+                  <Button variant="outline" onClick={handleCaptureFront}>
+                    <Camera className="mr-2 h-4 w-4" />
+                    {frontImage ? 'Ta om' : 'Fota omslag'}
+                  </Button>
+                </div>
+                <div className="mt-4 overflow-hidden rounded-xl border border-dashed border-border bg-secondary/30">
                   {frontImage ? (
-                    <img 
-                      src={frontImage} 
-                      alt="Front" 
-                      className="w-full h-full object-cover"
+                    <img
+                      src={frontImage}
+                      alt="Front"
+                      className="h-56 w-full object-cover"
                     />
                   ) : (
-                    <>
-                      <Camera className="w-8 h-8 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Fota</span>
-                    </>
+                    <div className="flex h-56 items-center justify-center text-sm text-muted-foreground">
+                      Ingen bild ännu
+                    </div>
                   )}
-                </button>
-                {frontImage && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full mt-2"
-                    onClick={() => setFrontImage(null)}
-                  >
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Ta om
-                  </Button>
-                )}
+                </div>
               </div>
 
-              {/* Back image */}
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">Baksida</p>
-                <button
-                  onClick={handleCaptureBack}
-                  className="w-full aspect-[2/3] rounded-xl border-2 border-dashed border-border bg-secondary/30 flex flex-col items-center justify-center gap-2 overflow-hidden hover:border-primary/50 transition-colors"
-                >
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Extra bild</p>
+                    <p className="text-base font-semibold">Baksida (valfri)</p>
+                    <p className="text-sm text-muted-foreground">
+                      Lägg till om du vill spara teknisk info.
+                    </p>
+                  </div>
+                  <Button variant="outline" onClick={handleCaptureBack}>
+                    <Image className="mr-2 h-4 w-4" />
+                    {backImage ? 'Ta om' : 'Fota baksida'}
+                  </Button>
+                </div>
+                <div className="mt-4 overflow-hidden rounded-xl border border-dashed border-border bg-secondary/30">
                   {backImage ? (
-                    <img 
-                      src={backImage} 
-                      alt="Back" 
-                      className="w-full h-full object-cover"
+                    <img
+                      src={backImage}
+                      alt="Back"
+                      className="h-40 w-full object-cover"
                     />
                   ) : (
-                    <>
-                      <Camera className="w-8 h-8 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Fota</span>
-                    </>
+                    <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+                      Ingen extra bild
+                    </div>
                   )}
-                </button>
-                {backImage && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full mt-2"
-                    onClick={() => setBackImage(null)}
-                  >
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Ta om
-                  </Button>
-                )}
+                </div>
               </div>
             </div>
+
+            {cameraError && (
+              <p className="text-sm text-destructive">{cameraError}</p>
+            )}
 
             <div className="flex gap-3">
               <Button
                 variant="outline"
                 className="flex-1"
-                onClick={() => setStep('edit-metadata')}
+                onClick={() => setStep('edit-details')}
               >
                 Hoppa över
               </Button>
@@ -693,16 +716,16 @@ export default function AddItemPage() {
               </Button>
               <Button
                 className="flex-1"
-                onClick={() => setStep('edit-metadata')}
+                onClick={() => setStep('edit-details')}
               >
-                {scanMatches.length > 0 ? 'Lägg till version' : 'Lägg till'}
+                {scanMatches.length > 0 ? 'Fortsätt till detaljer' : 'Fortsätt'}
               </Button>
             </div>
           </motion.div>
         );
       }
 
-      case 'edit-metadata':
+      case 'edit-details':
         return (
           <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -710,44 +733,32 @@ export default function AddItemPage() {
             exit={{ opacity: 0, x: -20 }}
             className="space-y-4"
           >
-            <h2 className="text-lg font-semibold">Detaljer</h2>
-            
             <div>
-              <Label htmlFor="title">Titel *</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ange titel"
-                className="mt-1"
-              />
+              <h2 className="text-lg font-semibold">Detaljer</h2>
+              <p className="text-sm text-muted-foreground">
+                Lägg till teknisk info och anteckningar. Du kan alltid justera senare.
+              </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="year">År</Label>
-                <Input
-                  id="year"
-                  type="number"
-                  value={year}
-                  onChange={(e) => setYear(e.target.value)}
-                  placeholder="2024"
-                  className="mt-1"
-                />
-              </div>
-              {mediaType === 'series' && (
+            <div className="rounded-xl border border-border bg-card p-4">
+              <div className="flex items-start justify-between gap-4">
                 <div>
-                  <Label htmlFor="season">Säsong</Label>
-                  <Input
-                    id="season"
-                    type="number"
-                    value={season}
-                    onChange={(e) => setSeason(e.target.value)}
-                    placeholder="1"
-                    className="mt-1"
-                  />
+                  <p className="text-sm text-muted-foreground">Grundinfo</p>
+                  <p className="text-base font-semibold">{title || 'Titel saknas'}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {year && `År ${year}`}
+                    {season && ` • Säsong ${season}`}
+                    {!year && !season && 'Ingen extra info'}
+                  </p>
                 </div>
-              )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setStep('enter-basics')}
+                >
+                  Redigera
+                </Button>
+              </div>
             </div>
 
             <div>
@@ -784,7 +795,14 @@ export default function AddItemPage() {
               />
             </div>
 
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setStep('capture-images')}
+              >
+                Tillbaka
+              </Button>
               <Button
                 variant="outline"
                 className="flex-1"
@@ -948,7 +966,7 @@ export default function AddItemPage() {
               <Button
                 variant="outline"
                 className="flex-1"
-                onClick={() => setStep('edit-metadata')}
+                onClick={() => setStep('edit-details')}
               >
                 Tillbaka
               </Button>
@@ -1021,13 +1039,22 @@ export default function AddItemPage() {
       {/* Progress indicator */}
       <div className="px-4 py-3">
         <div className="flex items-center gap-2">
-          {['select-library', 'select-type', 'capture-images', 'scan-check', 'edit-metadata', 'confirm'].map((s, i) => {
+          {[
+            'select-library',
+            'select-type',
+            'enter-basics',
+            'capture-images',
+            'scan-check',
+            'edit-details',
+            'confirm',
+          ].map((s, i) => {
             const steps = [
               'select-library',
               'select-type',
+              'enter-basics',
               'capture-images',
               'scan-check',
-              'edit-metadata',
+              'edit-details',
               'tmdb-match',
               'confirm',
             ];
