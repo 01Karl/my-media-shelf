@@ -264,6 +264,10 @@ export const tmdbService = {
         voteAverage: series.vote_average ?? fallbackSeries?.vote_average,
         genres: series.genres?.map((g: any) => g.name) ?? fallbackSeries?.genres?.map((g: any) => g.name),
         numberOfSeasons: series.number_of_seasons ?? fallbackSeries?.number_of_seasons,
+        seasons: (series.seasons ?? fallbackSeries?.seasons ?? []).map((season: any) => ({
+          seasonNumber: season.season_number,
+          posterPath: season.poster_path ?? null,
+        })),
       };
 
       
