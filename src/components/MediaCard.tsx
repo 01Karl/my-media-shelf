@@ -27,8 +27,13 @@ export function MediaCard({ item, tmdbData, onClick, className }: MediaCardProps
       setIsLoading(true);
       
       
-      if (tmdbData?.posterPath) {
-        const url = tmdbService.getImageUrl(tmdbData.posterPath, 'w342');
+      const seasonPosterPath =
+        item.type === 'series' && item.season
+          ? tmdbData?.seasons?.find((season) => season.seasonNumber === item.season)?.posterPath
+          : undefined;
+
+      if (seasonPosterPath || tmdbData?.posterPath) {
+        const url = tmdbService.getImageUrl(seasonPosterPath ?? tmdbData?.posterPath, 'w342');
         if (url) {
           setImageUrl(url);
           setIsLoading(false);
@@ -52,7 +57,7 @@ export function MediaCard({ item, tmdbData, onClick, className }: MediaCardProps
     };
 
     loadImage();
-  }, [item.frontImagePath, tmdbData?.posterPath]);
+  }, [item.frontImagePath, item.season, item.type, tmdbData?.posterPath, tmdbData?.seasons]);
 
   return (
     <motion.div

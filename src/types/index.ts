@@ -66,6 +66,10 @@ export interface TMDBData {
   genres?: string[];
   runtime?: number; 
   numberOfSeasons?: number; 
+  seasons?: {
+    seasonNumber: number;
+    posterPath?: string | null;
+  }[];
 }
 
 
