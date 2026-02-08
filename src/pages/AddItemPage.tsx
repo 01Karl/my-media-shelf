@@ -241,8 +241,8 @@ export default function AddItemPage() {
     
     try {
       const ocrResults = await ocrService.processMediaCovers(
-        overrideFront ?? frontImage || undefined,
-        overrideBack ?? backImage || undefined
+        (overrideFront ?? frontImage) || undefined,
+        (overrideBack ?? backImage) || undefined
       );
 
       const nextTitle = ocrResults.suggestedTitle?.trim() || title;
