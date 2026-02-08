@@ -9,10 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useAppStore } from '@/stores/appStore';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function CreateUserPage() {
   const navigate = useNavigate();
   const { createOwner } = useAppStore();
+  const { t } = useTranslation();
   const [displayName, setDisplayName] = useState('');
   const [usePin, setUsePin] = useState(false);
   const [pin, setPin] = useState('');
@@ -26,17 +28,17 @@ export default function CreateUserPage() {
     setError('');
 
     if (!displayName.trim()) {
-      setError('Ange ett visningsnamn');
+      setError(t('createUser.errors.displayName'));
       return;
     }
 
     if (usePin) {
       if (pin.length < 4) {
-        setError('PIN måste vara minst 4 siffror');
+        setError(t('createUser.errors.pinLength'));
         return;
       }
       if (pin !== confirmPin) {
-        setError('PIN-koderna matchar inte');
+        setError(t('createUser.errors.pinMismatch'));
         return;
       }
     }
@@ -47,7 +49,7 @@ export default function CreateUserPage() {
       await createOwner(displayName.trim(), usePin ? pin : undefined);
       navigate('/');
     } catch (err) {
-      setError('Kunde inte skapa användare');
+      setError(t('createUser.errors.createFailed'));
       setIsLoading(false);
     }
   };
@@ -63,7 +65,7 @@ export default function CreateUserPage() {
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <h1 className="font-bold text-lg">Skapa användare</h1>
+        <h1 className="font-bold text-lg">{t('createUser.title')}</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
@@ -83,12 +85,12 @@ export default function CreateUserPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <Label htmlFor="displayName">Visningsnamn</Label>
+          <Label htmlFor="displayName">{t('createUser.displayName')}</Label>
           <Input
             id="displayName"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="T.ex. Karl"
+            placeholder={t('createUser.displayNamePlaceholder')}
             className="mt-2"
             autoFocus
           />
@@ -104,9 +106,9 @@ export default function CreateUserPage() {
           <div className="flex items-center gap-3">
             <Lock className="w-5 h-5 text-muted-foreground" />
             <div>
-              <p className="font-medium">Skydda med PIN</p>
+              <p className="font-medium">{t('createUser.protectWithPin')}</p>
               <p className="text-sm text-muted-foreground">
-                Kräv PIN-kod vid inloggning
+                {t('createUser.requirePin')}
               </p>
             </div>
           </div>
@@ -125,7 +127,7 @@ export default function CreateUserPage() {
             className="space-y-4"
           >
             <div className="relative">
-              <Label htmlFor="pin">PIN-kod (4-8 siffror)</Label>
+              <Label htmlFor="pin">{t('createUser.pinLabel')}</Label>
               <div className="relative mt-2">
                 <Input
                   id="pin"
@@ -149,7 +151,7 @@ export default function CreateUserPage() {
             </div>
 
             <div>
-              <Label htmlFor="confirmPin">Bekräfta PIN-kod</Label>
+              <Label htmlFor="confirmPin">{t('createUser.confirmPin')}</Label>
               <Input
                 id="confirmPin"
                 type={showPin ? 'text' : 'password'}
@@ -187,7 +189,7 @@ export default function CreateUserPage() {
             size="lg"
             disabled={isLoading}
           >
-            {isLoading ? 'Skapar...' : 'Skapa användare'}
+            {isLoading ? t('createUser.creating') : t('createUser.create')}
           </Button>
         </motion.div>
       </form>

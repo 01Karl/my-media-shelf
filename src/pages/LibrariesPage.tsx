@@ -12,10 +12,12 @@ import { Button } from '@/components/ui/button';
 import { useAppStore } from '@/stores/appStore';
 import { libraryRepository } from '@/db';
 import type { Library } from '@/types';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function LibrariesPage() {
   const navigate = useNavigate();
   const { currentOwner } = useAppStore();
+  const { t } = useTranslation();
   const [libraries, setLibraries] = useState<Library[]>([]);
   const [libraryCounts, setLibraryCounts] = useState<Record<string, number>>({});
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,8 +58,8 @@ export default function LibrariesPage() {
   return (
     <div className="page-container">
       <PageHeader
-        title="Bibliotek"
-        subtitle={`${libraries.length} bibliotek`}
+        title={t('libraries.title')}
+        subtitle={t('libraries.subtitle', { count: libraries.length })}
         rightAction={
           <Button
             size="icon"
@@ -73,7 +75,7 @@ export default function LibrariesPage() {
         <SearchInput
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder="Sök bibliotek..."
+          placeholder={t('libraries.searchPlaceholder')}
           className="mb-6"
         />
 
@@ -90,7 +92,7 @@ export default function LibrariesPage() {
               <section>
                 <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
                   <Users className="w-4 h-4" />
-                  Delade bibliotek
+                  {t('libraries.shared')}
                 </h3>
                 <div className="space-y-3">
                   <AnimatePresence>
@@ -119,7 +121,7 @@ export default function LibrariesPage() {
               <section>
                 <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
                   <Folder className="w-4 h-4" />
-                  Privata bibliotek
+                  {t('libraries.private')}
                 </h3>
                 <div className="space-y-3">
                   <AnimatePresence>
@@ -146,15 +148,15 @@ export default function LibrariesPage() {
         ) : searchQuery ? (
           <EmptyState
             icon={Folder}
-            title="Inga träffar"
-            description={`Hittade inga bibliotek som matchar "${searchQuery}"`}
+            title={t('libraries.noMatchesTitle')}
+            description={t('libraries.noMatchesDescription', { query: searchQuery })}
           />
         ) : (
           <EmptyState
             icon={Folder}
-            title="Inga bibliotek ännu"
-            description="Skapa ditt första bibliotek för att börja organisera din samling"
-            actionLabel="Skapa bibliotek"
+            title={t('libraries.emptyTitle')}
+            description={t('libraries.emptyDescription')}
+            actionLabel={t('libraries.createLibrary')}
             onAction={() => navigate('/libraries/create')}
           />
         )}

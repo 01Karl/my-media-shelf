@@ -3,6 +3,7 @@
 import { cn } from '@/lib/utils';
 import { Film, Tv, HelpCircle, Clapperboard } from 'lucide-react';
 import type { MediaType } from '@/types';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface TypeBadgeProps {
   type: MediaType;
@@ -10,16 +11,16 @@ interface TypeBadgeProps {
   showIcon?: boolean;
 }
 
-const typeConfig: Record<MediaType, { label: string; icon: typeof Film }> = {
-  'movie': { label: 'Film', icon: Film },
-  'series': { label: 'Serie', icon: Tv },
-  'documentary': { label: 'Dokumentär', icon: Clapperboard },
-  'other': { label: 'Övrigt', icon: HelpCircle },
-};
-
 export function TypeBadge({ type, className, showIcon = true }: TypeBadgeProps) {
-  const config = typeConfig[type];
-  const Icon = config.icon;
+  const { t } = useTranslation();
+  const config: Record<MediaType, { label: string; icon: typeof Film }> = {
+    movie: { label: t('media.movie'), icon: Film },
+    series: { label: t('media.series'), icon: Tv },
+    documentary: { label: t('media.documentary'), icon: Clapperboard },
+    other: { label: t('media.other'), icon: HelpCircle },
+  };
+  const configItem = config[type];
+  const Icon = configItem.icon;
   
   return (
     <span
@@ -29,7 +30,7 @@ export function TypeBadge({ type, className, showIcon = true }: TypeBadgeProps) 
       )}
     >
       {showIcon && <Icon className="w-4 h-4" />}
-      {config.label}
+      {configItem.label}
     </span>
   );
 }

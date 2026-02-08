@@ -17,10 +17,12 @@ import { storageService } from '@/services';
 import { tmdbCacheRepository } from '@/db';
 import { SUPPORTED_LANGUAGES } from '@/lib/language';
 import type { AppLanguage } from '@/lib/language';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { currentOwner, logout, isOnline, language, setLanguage } = useAppStore();
+  const { t } = useTranslation();
   const [storageStats, setStorageStats] = useState<{ used: number; available: number } | null>(null);
   const [cacheStats, setCacheStats] = useState<{ count: number } | null>(null);
 
@@ -37,14 +39,14 @@ export default function SettingsPage() {
   });
 
   const handleLogout = async () => {
-    if (confirm('Är du säker på att du vill logga ut?')) {
+    if (confirm(t('settings.confirmLogout'))) {
       await logout();
       navigate('/auth');
     }
   };
 
   const handleClearCache = async () => {
-    if (confirm('Rensa all TMDB-cache? Detta påverkar inte dina sparade objekt.')) {
+    if (confirm(t('settings.confirmClearCache'))) {
       await tmdbCacheRepository.clearAll();
       loadStats();
     }
@@ -60,19 +62,19 @@ export default function SettingsPage() {
 
   return (
     <div className="page-container">
-      <PageHeader title="Inställningar" />
+      <PageHeader title={t('settings.title')} />
 
       <div className="px-4 py-4 space-y-6">
         
         <section>
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">Användare</h3>
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">{t('settings.userSection')}</h3>
           <div className="bg-card rounded-xl border border-border overflow-hidden">
             <div className="flex items-center gap-4 p-4">
               <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center">
                 <User className="w-7 h-7 text-muted-foreground" />
               </div>
               <div className="flex-1">
-                <p className="font-semibold">{currentOwner?.displayName || 'Användare'}</p>
+                <p className="font-semibold">{currentOwner?.displayName || t('common.user')}</p>
                 <p className="text-sm text-muted-foreground">
                   ID: {currentOwner?.ownerId.slice(0, 8)}...
                 </p>
@@ -84,7 +86,7 @@ export default function SettingsPage() {
                 onClick={() => navigate('/settings/profile')}
                 className="w-full flex items-center justify-between p-4 hover:bg-secondary/50 transition-colors"
               >
-                <span>Redigera profil</span>
+                <span>{t('settings.editProfile')}</span>
                 <ChevronRight className="w-5 h-5 text-muted-foreground" />
               </button>
             </div>
@@ -96,7 +98,7 @@ export default function SettingsPage() {
               >
                 <div className="flex items-center gap-3">
                   <Shield className="w-5 h-5 text-muted-foreground" />
-                  <span>PIN-kod</span>
+                  <span>{t('settings.pinCode')}</span>
                 </div>
                 <ChevronRight className="w-5 h-5 text-muted-foreground" />
               </button>
@@ -106,14 +108,14 @@ export default function SettingsPage() {
 
         
         <section>
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">Språk</h3>
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">{t('settings.languageSection')}</h3>
           <div className="bg-card rounded-xl border border-border overflow-hidden">
             <div className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">
                 <Languages className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <p className="font-medium">Appspråk</p>
-                  <p className="text-sm text-muted-foreground">Välj språk för appen</p>
+                  <p className="font-medium">{t('settings.appLanguage')}</p>
+                  <p className="text-sm text-muted-foreground">{t('settings.chooseLanguage')}</p>
                 </div>
               </div>
               <Select
@@ -121,7 +123,7 @@ export default function SettingsPage() {
                 onValueChange={(value) => void setLanguage(value as AppLanguage)}
               >
                 <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Välj språk" />
+                  <SelectValue placeholder={t('settings.languageSection')} />
                 </SelectTrigger>
                 <SelectContent>
                   {SUPPORTED_LANGUAGES.map((option) => (
@@ -137,15 +139,15 @@ export default function SettingsPage() {
 
         
         <section>
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">Lagring</h3>
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">{t('settings.storageSection')}</h3>
           <div className="bg-card rounded-xl border border-border overflow-hidden">
             <div className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">
                 <HardDrive className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <p className="font-medium">Använt utrymme</p>
+                  <p className="font-medium">{t('settings.usedSpace')}</p>
                   <p className="text-sm text-muted-foreground">
-                    {storageStats ? formatBytes(storageStats.used) : 'Beräknar...'}
+                    {storageStats ? formatBytes(storageStats.used) : t('settings.calculating')}
                   </p>
                 </div>
               </div>
@@ -156,9 +158,9 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-3">
                   <Database className="w-5 h-5 text-muted-foreground" />
                   <div>
-                    <p className="font-medium">TMDB-cache</p>
+                    <p className="font-medium">{t('settings.tmdbCache')}</p>
                     <p className="text-sm text-muted-foreground">
-                      {cacheStats ? `${cacheStats.count} poster` : 'Beräknar...'}
+                      {cacheStats ? t('settings.posters', { count: cacheStats.count }) : t('settings.calculating')}
                     </p>
                   </div>
                 </div>
@@ -167,7 +169,7 @@ export default function SettingsPage() {
                   size="sm"
                   onClick={handleClearCache}
                 >
-                  Rensa
+                  {t('common.clear')}
                 </Button>
               </div>
             </div>
@@ -176,12 +178,12 @@ export default function SettingsPage() {
 
         
         <section>
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">Om appen</h3>
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">{t('settings.aboutSection')}</h3>
           <div className="bg-card rounded-xl border border-border overflow-hidden">
             <div className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">
                 <Info className="w-5 h-5 text-muted-foreground" />
-                <span>Version</span>
+                <span>{t('common.version')}</span>
               </div>
               <span className="text-muted-foreground">1.0.0</span>
             </div>
@@ -190,11 +192,11 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between p-4">
                 <div className="flex items-center gap-3">
                   <Smartphone className="w-5 h-5 text-muted-foreground" />
-                  <span>Status</span>
+                  <span>{t('common.status')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-success' : 'bg-muted-foreground'}`} />
-                  <span className="text-muted-foreground">{isOnline ? 'Online' : 'Offline'}</span>
+                  <span className="text-muted-foreground">{isOnline ? t('common.online') : t('common.offline')}</span>
                 </div>
               </div>
             </div>
@@ -213,14 +215,14 @@ export default function SettingsPage() {
             onClick={handleLogout}
           >
             <LogOut className="w-4 h-4 mr-2" />
-            Logga ut
+            {t('settings.logout')}
           </Button>
         </motion.div>
 
         
         <div className="text-center text-xs text-muted-foreground pt-4">
-          <p>Media Library App</p>
-          <p className="mt-1">Data från TMDB</p>
+          <p>{t('settings.appFooter')}</p>
+          <p className="mt-1">{t('settings.dataFromTmdb')}</p>
         </div>
       </div>
     </div>

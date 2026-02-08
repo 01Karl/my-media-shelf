@@ -12,10 +12,12 @@ import { Button } from '@/components/ui/button';
 import { useAppStore } from '@/stores/appStore';
 import { libraryRepository, itemRepository, tmdbCacheRepository } from '@/db';
 import type { Library, MediaItem, TMDBData } from '@/types';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function HomePage() {
   const navigate = useNavigate();
   const { currentOwner, isOnline } = useAppStore();
+  const { t } = useTranslation();
   const [libraries, setLibraries] = useState<Library[]>([]);
   const [recentItems, setRecentItems] = useState<MediaItem[]>([]);
   const [libraryCounts, setLibraryCounts] = useState<Record<string, number>>({});
@@ -73,13 +75,13 @@ export default function HomePage() {
   return (
     <div className="page-container">
       <PageHeader 
-        title={`Hej, ${currentOwner?.displayName || 'Användare'}!`}
-        subtitle={`${totalItems} objekt i ${libraries.length} bibliotek`}
+        title={t('home.greeting', { name: currentOwner?.displayName || t('common.user') })}
+        subtitle={t('home.summary', { items: totalItems, libraries: libraries.length })}
         rightAction={
           <div className="flex items-center gap-2">
             <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-success' : 'bg-muted-foreground'}`} />
             <span className="text-xs text-muted-foreground">
-              {isOnline ? 'Online' : 'Offline'}
+              {isOnline ? t('common.online') : t('common.offline')}
             </span>
           </div>
         }
@@ -97,7 +99,7 @@ export default function HomePage() {
             onClick={() => navigate('/add')}
           >
             <Plus className="w-4 h-4 mr-2" />
-            Lägg till
+            {t('common.add')}
           </Button>
           <Button 
             variant="secondary"
@@ -105,20 +107,20 @@ export default function HomePage() {
             onClick={() => navigate('/libraries')}
           >
             <Folder className="w-4 h-4 mr-2" />
-            Bibliotek
+            {t('common.libraries')}
           </Button>
         </motion.div>
 
         
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg">Mina bibliotek</h2>
+            <h2 className="font-semibold text-lg">{t('home.myLibraries')}</h2>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate('/libraries')}
             >
-              Visa alla
+              {t('home.viewAll')}
             </Button>
           </div>
 
@@ -148,9 +150,9 @@ export default function HomePage() {
           ) : (
             <EmptyState
               icon={Folder}
-              title="Inga bibliotek ännu"
-              description="Skapa ditt första bibliotek för att börja organisera din samling"
-              actionLabel="Skapa bibliotek"
+              title={t('home.noLibrariesTitle')}
+              description={t('home.noLibrariesDescription')}
+              actionLabel={t('home.createLibrary')}
               onAction={() => navigate('/libraries/create')}
             />
           )}
@@ -161,7 +163,7 @@ export default function HomePage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-lg flex items-center gap-2">
               <Clock className="w-5 h-5 text-muted-foreground" />
-              Senast tillagda
+              {t('home.recentAdded')}
             </h2>
           </div>
 
@@ -191,9 +193,9 @@ export default function HomePage() {
           ) : (
             <EmptyState
               icon={Film}
-              title="Inga objekt ännu"
-              description="Lägg till din första film eller serie"
-              actionLabel="Lägg till objekt"
+              title={t('home.noItemsTitle')}
+              description={t('home.noItemsDescription')}
+              actionLabel={t('home.addItem')}
               onAction={() => navigate('/add')}
             />
           )}
