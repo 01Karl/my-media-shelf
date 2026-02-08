@@ -1,12 +1,12 @@
 // Add item page - multi-step flow for adding media items
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Camera, Image, Film, Tv, HelpCircle, 
+  Camera, Image, Film, Tv, HelpCircle,
   ChevronRight, Check, Search, Loader2,
-  RotateCcw, Sparkles
+  Sparkles
 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { FormatBadge } from '@/components/FormatBadge';
@@ -77,10 +77,7 @@ export default function AddItemPage() {
   const [isProcessingOcr, setIsProcessingOcr] = useState(false);
   const [isCheckingLibrary, setIsCheckingLibrary] = useState(false);
   const [scanMatches, setScanMatches] = useState<MediaItem[]>([]);
-  const [isLiveCameraActive, setIsLiveCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const liveVideoRef = useRef<HTMLVideoElement | null>(null);
-  const liveStreamRef = useRef<MediaStream | null>(null);
   
   // Metadata
   const [title, setTitle] = useState('');
@@ -123,51 +120,30 @@ export default function AddItemPage() {
 
   // Capture front image
   const handleCaptureFront = async () => {
+    setCameraError(null);
     const image = await cameraService.capturePhoto();
     if (image) {
       setFrontImage(image.dataUrl);
+    } else {
+      setCameraError('Ingen bild togs. Försök igen när kameran är redo.');
     }
   };
 
   // Capture back image
   const handleCaptureBack = async () => {
+    setCameraError(null);
     const image = await cameraService.capturePhoto();
     if (image) {
       setBackImage(image.dataUrl);
-    }
-  };
-
-  const stopLiveCamera = () => {
-    liveStreamRef.current?.getTracks().forEach((track) => track.stop());
-    liveStreamRef.current = null;
-    setIsLiveCameraActive(false);
-  };
-
-  const startLiveCamera = async () => {
-    try {
-      setCameraError(null);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-        audio: false,
-      });
-      liveStreamRef.current = stream;
-      if (liveVideoRef.current) {
-        liveVideoRef.current.srcObject = stream;
-        await liveVideoRef.current.play();
-      }
-      setIsLiveCameraActive(true);
-    } catch (error) {
-      console.error('Failed to start live camera:', error);
-      setCameraError('Kameran kunde inte startas. Kontrollera behörigheter.');
+    } else {
+      setCameraError('Ingen bild togs. Försök igen när kameran är redo.');
     }
   };
 
   useEffect(() => {
     if (step !== 'capture-images') {
-      stopLiveCamera();
+      setCameraError(null);
     }
-
-    return () => stopLiveCamera();
   }, [step]);
 
   // Process OCR and proceed
@@ -398,21 +374,42 @@ export default function AddItemPage() {
           >
             <div>
               <h2 className="text-lg font-semibold mb-4">Typ av media</h2>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid gap-3">
                 {MEDIA_TYPES.map((type) => {
                   const Icon = type.icon;
+                  const isActive = mediaType === type.value;
                   return (
                     <button
                       key={type.value}
                       onClick={() => setMediaType(type.value)}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all ${
-                        mediaType === type.value
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-card border-border hover:bg-secondary/50'
+                      className={`flex items-center gap-4 rounded-2xl border p-4 text-left transition-all ${
+                        isActive
+                          ? 'border-primary bg-primary/10 shadow-sm'
+                          : 'border-border bg-card hover:bg-secondary/40'
                       }`}
                     >
-                      <Icon className="w-8 h-8" />
-                      <span className="text-sm font-medium">{type.label}</span>
+                      <div
+                        className={`flex h-12 w-12 items-center justify-center rounded-xl ${
+                          isActive ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'
+                        }`}
+                      >
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-base font-semibold">{type.label}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {type.value === 'movie'
+                            ? 'Lägg till en film i biblioteket.'
+                            : type.value === 'series'
+                              ? 'Säsonger, boxar och TV-serier.'
+                              : 'Allt som inte passar i film eller serie.'}
+                        </p>
+                      </div>
+                      {isActive && (
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                          <Check className="h-4 w-4" />
+                        </div>
+                      )}
                     </button>
                   );
                 })}
@@ -421,15 +418,15 @@ export default function AddItemPage() {
 
             <div>
               <h2 className="text-lg font-semibold mb-4">Format</h2>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="flex flex-wrap gap-2">
                 {MEDIA_FORMATS.map((f) => (
                   <button
                     key={f.value}
                     onClick={() => setFormat(f.value)}
-                    className={`p-3 rounded-xl border text-sm font-medium transition-all ${
+                    className={`rounded-full border px-4 py-2 text-sm font-medium transition-all ${
                       format === f.value
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-card border-border hover:bg-secondary/50'
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border bg-card hover:bg-secondary/50'
                     }`}
                   >
                     {f.label}
@@ -533,127 +530,76 @@ export default function AddItemPage() {
             exit={{ opacity: 0, x: -20 }}
             className="space-y-6"
           >
-            <h2 className="text-lg font-semibold">Fota omslaget</h2>
-
-            <div className="space-y-3">
-              <div className="rounded-xl border border-border bg-card overflow-hidden">
-                {isLiveCameraActive ? (
-                  <video
-                    ref={liveVideoRef}
-                    className="w-full aspect-video object-cover"
-                    muted
-                    playsInline
-                  />
-                ) : (
-                  <div className="w-full aspect-video flex items-center justify-center text-sm text-muted-foreground">
-                    Livekamera är avstängd
-                  </div>
-                )}
-              </div>
-              {cameraError && (
-                <p className="text-sm text-destructive">{cameraError}</p>
-              )}
-              <div className="flex gap-3">
-                {isLiveCameraActive ? (
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={stopLiveCamera}
-                  >
-                    Stäng livekamera
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={startLiveCamera}
-                  >
-                    Starta livekamera
-                  </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  className="flex-1"
-                  onClick={() => {
-                    setFrontImage(null);
-                    setBackImage(null);
-                  }}
-                >
-                  Rensa bilder
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Livekameran hjälper dig att rikta omslaget innan du tar bilden.
+            <div>
+              <h2 className="text-lg font-semibold">Hitta omslag</h2>
+              <p className="text-sm text-muted-foreground">
+                Lägg till ett tydligt omslag. Vi plockar titel och år när det går.
               </p>
             </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              {/* Front image */}
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">Framsida</p>
-                <button
-                  onClick={handleCaptureFront}
-                  className="w-full aspect-[2/3] rounded-xl border-2 border-dashed border-border bg-secondary/30 flex flex-col items-center justify-center gap-2 overflow-hidden hover:border-primary/50 transition-colors"
-                >
+
+            <div className="grid gap-4">
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Omslag (framsida)</p>
+                    <p className="text-base font-semibold">Primär bild</p>
+                    <p className="text-sm text-muted-foreground">
+                      Fota eller byt ut omslaget om det behövs.
+                    </p>
+                  </div>
+                  <Button variant="outline" onClick={handleCaptureFront}>
+                    <Camera className="mr-2 h-4 w-4" />
+                    {frontImage ? 'Ta om' : 'Fota omslag'}
+                  </Button>
+                </div>
+                <div className="mt-4 overflow-hidden rounded-xl border border-dashed border-border bg-secondary/30">
                   {frontImage ? (
-                    <img 
-                      src={frontImage} 
-                      alt="Front" 
-                      className="w-full h-full object-cover"
+                    <img
+                      src={frontImage}
+                      alt="Front"
+                      className="h-56 w-full object-cover"
                     />
                   ) : (
-                    <>
-                      <Camera className="w-8 h-8 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Fota</span>
-                    </>
+                    <div className="flex h-56 items-center justify-center text-sm text-muted-foreground">
+                      Ingen bild ännu
+                    </div>
                   )}
-                </button>
-                {frontImage && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full mt-2"
-                    onClick={() => setFrontImage(null)}
-                  >
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Ta om
-                  </Button>
-                )}
+                </div>
               </div>
 
-              {/* Back image */}
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">Baksida</p>
-                <button
-                  onClick={handleCaptureBack}
-                  className="w-full aspect-[2/3] rounded-xl border-2 border-dashed border-border bg-secondary/30 flex flex-col items-center justify-center gap-2 overflow-hidden hover:border-primary/50 transition-colors"
-                >
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Extra bild</p>
+                    <p className="text-base font-semibold">Baksida (valfri)</p>
+                    <p className="text-sm text-muted-foreground">
+                      Lägg till om du vill spara teknisk info.
+                    </p>
+                  </div>
+                  <Button variant="outline" onClick={handleCaptureBack}>
+                    <Image className="mr-2 h-4 w-4" />
+                    {backImage ? 'Ta om' : 'Fota baksida'}
+                  </Button>
+                </div>
+                <div className="mt-4 overflow-hidden rounded-xl border border-dashed border-border bg-secondary/30">
                   {backImage ? (
-                    <img 
-                      src={backImage} 
-                      alt="Back" 
-                      className="w-full h-full object-cover"
+                    <img
+                      src={backImage}
+                      alt="Back"
+                      className="h-40 w-full object-cover"
                     />
                   ) : (
-                    <>
-                      <Camera className="w-8 h-8 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Fota</span>
-                    </>
+                    <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+                      Ingen extra bild
+                    </div>
                   )}
-                </button>
-                {backImage && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full mt-2"
-                    onClick={() => setBackImage(null)}
-                  >
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Ta om
-                  </Button>
-                )}
+                </div>
               </div>
             </div>
+
+            {cameraError && (
+              <p className="text-sm text-destructive">{cameraError}</p>
+            )}
 
             <div className="flex gap-3">
               <Button
