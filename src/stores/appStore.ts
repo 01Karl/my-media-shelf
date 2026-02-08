@@ -28,6 +28,8 @@ interface AppState {
   login: (ownerId: string, pin?: string) => Promise<boolean>;
   logout: () => Promise<void>;
   createOwner: (displayName: string, pin?: string) => Promise<Owner>;
+  updateOwnerProfile: (displayName: string) => Promise<Owner | null>;
+  updateOwnerPin: (pin?: string) => Promise<boolean>;
   setActiveLibrary: (libraryId: string | null) => void;
   updateOnlineStatus: (isOnline: boolean) => void;
   setLanguage: (language: AppLanguage) => Promise<void>;
@@ -124,6 +126,38 @@ export const useAppStore = create<AppState>()(
         set({ isAuthenticated: true, currentOwner: owner });
         await runOneTimeSeriesImport(owner.ownerId);
         return owner;
+      },
+
+      updateOwnerProfile: async (displayName: string) => {
+        const { currentOwner } = get();
+        if (!currentOwner) return null;
+        const updated = await ownerRepository.update(currentOwner.ownerId, { displayName });
+        if (updated) {
+          set({ currentOwner: updated });
+        }
+        return updated;
+      },
+
+      updateOwnerPin: async (pin?: string) => {
+        const { currentOwner } = get();
+        if (!currentOwner) return false;
+
+        if (pin) {
+          const success = await ownerRepository.updatePin(currentOwner.ownerId, pin);
+          if (!success) return false;
+          const refreshed = await ownerRepository.getById(currentOwner.ownerId);
+          if (refreshed) {
+            set({ currentOwner: refreshed });
+          }
+          return Boolean(refreshed);
+        }
+
+        const updated = await ownerRepository.update(currentOwner.ownerId, { pinHash: undefined });
+        if (updated) {
+          set({ currentOwner: updated });
+          return true;
+        }
+        return false;
       },
 
       setActiveLibrary: (libraryId: string | null) => {

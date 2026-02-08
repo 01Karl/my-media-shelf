@@ -21,6 +21,8 @@ import AddItemPage from "./pages/AddItemPage";
 import ItemDetailPage from "./pages/ItemDetailPage";
 import SyncPage from "./pages/SyncPage";
 import SettingsPage from "./pages/SettingsPage";
+import SettingsProfilePage from "./pages/SettingsProfilePage";
+import SettingsSecurityPage from "./pages/SettingsSecurityPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -75,6 +77,8 @@ function AppContent() {
         <Route path="/items/:itemId" element={isAuthenticated ? <ItemDetailPage /> : <Navigate to="/auth" />} />
         <Route path="/sync" element={isAuthenticated ? <SyncPage /> : <Navigate to="/auth" />} />
         <Route path="/settings" element={isAuthenticated ? <SettingsPage /> : <Navigate to="/auth" />} />
+        <Route path="/settings/profile" element={isAuthenticated ? <SettingsProfilePage /> : <Navigate to="/auth" />} />
+        <Route path="/settings/security" element={isAuthenticated ? <SettingsSecurityPage /> : <Navigate to="/auth" />} />
         
         <Route path="*" element={<NotFound />} />
       </Routes>
