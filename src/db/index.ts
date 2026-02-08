@@ -1,4 +1,4 @@
-// Database exports
+
 
 export { initDatabase, getDatabase, closeDatabase, getSetting, setSetting, deleteSetting } from './database';
 export { ownerRepository } from './repositories/ownerRepository';

@@ -1,4 +1,4 @@
-// Create library page
+
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -67,7 +67,7 @@ export default function CreateLibraryPage() {
       />
 
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
-        {/* Icon selector */}
+        
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -94,7 +94,7 @@ export default function CreateLibraryPage() {
           </div>
         </motion.div>
 
-        {/* Name input */}
+        
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -111,7 +111,7 @@ export default function CreateLibraryPage() {
           />
         </motion.div>
 
-        {/* Description input */}
+        
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -128,7 +128,7 @@ export default function CreateLibraryPage() {
           />
         </motion.div>
 
-        {/* Shared toggle */}
+        
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -169,7 +169,7 @@ export default function CreateLibraryPage() {
           </motion.div>
         )}
 
-        {/* Error message */}
+        
         {error && (
           <motion.p
             initial={{ opacity: 0 }}
@@ -180,7 +180,7 @@ export default function CreateLibraryPage() {
           </motion.p>
         )}
 
-        {/* Submit button */}
+        
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

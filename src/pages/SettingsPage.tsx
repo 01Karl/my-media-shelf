@@ -1,4 +1,4 @@
-// Settings page
+
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -60,7 +60,7 @@ export default function SettingsPage() {
       <PageHeader title="Inställningar" />
 
       <div className="px-4 py-4 space-y-6">
-        {/* User section */}
+        
         <section>
           <h3 className="text-sm font-medium text-muted-foreground mb-3">Användare</h3>
           <div className="bg-card rounded-xl border border-border overflow-hidden">
@@ -101,7 +101,7 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* Storage section */}
+        
         <section>
           <h3 className="text-sm font-medium text-muted-foreground mb-3">Lagring</h3>
           <div className="bg-card rounded-xl border border-border overflow-hidden">
@@ -140,7 +140,7 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* App info */}
+        
         <section>
           <h3 className="text-sm font-medium text-muted-foreground mb-3">Om appen</h3>
           <div className="bg-card rounded-xl border border-border overflow-hidden">
@@ -167,7 +167,7 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        {/* Logout */}
+        
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -183,7 +183,7 @@ export default function SettingsPage() {
           </Button>
         </motion.div>
 
-        {/* Credits */}
+        
         <div className="text-center text-xs text-muted-foreground pt-4">
           <p>Media Library App</p>
           <p className="mt-1">Data från TMDB</p>

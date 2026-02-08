@@ -1,5 +1,5 @@
-// OCR Service - extracts text from images
-// Uses Tesseract.js in web environments.
+
+
 
 import type { OCRResult } from '@/types';
 
@@ -25,7 +25,7 @@ const getWorker = async (): Promise<import('tesseract.js').Worker> => {
   return workerPromise;
 };
 
-// Common patterns for extracting metadata from scanned text
+
 const YEAR_PATTERN = /\b(19|20)\d{2}\b/g;
 const SEASON_PATTERN = /(?:säsong|season|s)\s*(\d+)/i;
 const AUDIO_PATTERNS = [
@@ -42,27 +42,27 @@ const VIDEO_PATTERNS = [
   /dolby\s*vision/i,
 ];
 
-// Extract potential title from OCR text
+
 function extractTitle(text: string): string | undefined {
-  // Take first non-empty line as potential title
+  
   const lines = text.split('\n').filter(line => line.trim().length > 3);
   if (lines.length > 0) {
-    // Clean up the line
+    
     let title = lines[0].trim();
-    // Remove common prefix/suffix noise
+    
     title = title.replace(/^(the\s+)?/i, '');
     return title;
   }
   return undefined;
 }
 
-// Extract year from OCR text
+
 function extractYear(text: string): number | undefined {
   const matches = text.match(YEAR_PATTERN);
   if (matches && matches.length > 0) {
-    // Return the most likely year (last one found is often the release year)
+    
     const years = matches.map(y => parseInt(y, 10));
-    // Filter to reasonable range
+    
     const validYears = years.filter(y => y >= 1920 && y <= new Date().getFullYear() + 1);
     if (validYears.length > 0) {
       return validYears[validYears.length - 1];
@@ -71,7 +71,7 @@ function extractYear(text: string): number | undefined {
   return undefined;
 }
 
-// Extract season number for series
+
 function extractSeason(text: string): number | undefined {
   const match = text.match(SEASON_PATTERN);
   if (match && match[1]) {
@@ -80,7 +80,7 @@ function extractSeason(text: string): number | undefined {
   return undefined;
 }
 
-// Extract audio info
+
 function extractAudioInfo(text: string): string | undefined {
   const found: string[] = [];
   for (const pattern of AUDIO_PATTERNS) {
@@ -92,7 +92,7 @@ function extractAudioInfo(text: string): string | undefined {
   return found.length > 0 ? found.join(', ') : undefined;
 }
 
-// Extract video info
+
 function extractVideoInfo(text: string): string | undefined {
   const found: string[] = [];
   for (const pattern of VIDEO_PATTERNS) {
@@ -105,9 +105,9 @@ function extractVideoInfo(text: string): string | undefined {
 }
 
 export const ocrService = {
-  /**
-   * Process an image and extract text
-   */
+  
+
+
   async processImage(imageDataUrl: string): Promise<OCRResult> {
     if (typeof window === 'undefined') {
       return {
@@ -139,9 +139,9 @@ export const ocrService = {
     }
   },
 
-  /**
-   * Parse OCR text and extract metadata
-   */
+  
+
+
   parseText(text: string): {
     suggestedTitle?: string;
     suggestedYear?: number;
@@ -158,9 +158,9 @@ export const ocrService = {
     };
   },
 
-  /**
-   * Process both front and back images and combine results
-   */
+  
+
+
   async processMediaCovers(
     frontImageDataUrl?: string,
     backImageDataUrl?: string
@@ -183,7 +183,7 @@ export const ocrService = {
       videoInfo?: string;
     } = {};
 
-    // Process front (usually has title)
+    
     if (frontImageDataUrl) {
       const frontResult = await this.processImage(frontImageDataUrl);
       results.ocrTextFront = frontResult.text;
@@ -194,17 +194,17 @@ export const ocrService = {
       results.suggestedSeason = frontParsed.suggestedSeason;
     }
 
-    // Process back (usually has technical specs)
+    
     if (backImageDataUrl) {
       const backResult = await this.processImage(backImageDataUrl);
       results.ocrTextBack = backResult.text;
       
       const backParsed = this.parseText(backResult.text);
-      // Use back for audio/video info, or supplement from front
+      
       results.audioInfo = backParsed.audioInfo;
       results.videoInfo = backParsed.videoInfo;
       
-      // If no title from front, try back
+      
       if (!results.suggestedTitle && backParsed.suggestedTitle) {
         results.suggestedTitle = backParsed.suggestedTitle;
       }
@@ -216,10 +216,10 @@ export const ocrService = {
     return results;
   },
 
-  /**
-   * Check if OCR is available
-   * Returns true if we have access to OCR functionality
-   */
+  
+
+
+
   isAvailable(): boolean {
     return typeof window !== 'undefined';
   },

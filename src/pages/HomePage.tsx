@@ -1,4 +1,4 @@
-// Home page - main dashboard
+
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -32,25 +32,25 @@ export default function HomePage() {
     setIsLoading(true);
 
     try {
-      // Load libraries
+      
       const userLibraries = await libraryRepository.getByOwner(currentOwner.ownerId);
       setLibraries(userLibraries);
 
-      // Load item counts
+      
       const counts: Record<string, number> = {};
       for (const lib of userLibraries) {
         counts[lib.libraryId] = await libraryRepository.getItemCount(lib.libraryId);
       }
       setLibraryCounts(counts);
 
-      // Load recent items (last 10)
+      
       const allItems = await itemRepository.getByOwner(currentOwner.ownerId);
       const sorted = allItems.sort((a, b) => 
         new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
       );
       setRecentItems(sorted.slice(0, 10));
 
-      // Load TMDB cache for items with tmdbId
+      
       const cache: Record<number, TMDBData> = {};
       for (const item of sorted.slice(0, 10)) {
         if (item.tmdbId) {
@@ -86,7 +86,7 @@ export default function HomePage() {
       />
 
       <div className="px-4 py-6 space-y-8">
-        {/* Quick actions */}
+        
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -109,7 +109,7 @@ export default function HomePage() {
           </Button>
         </motion.div>
 
-        {/* Libraries section */}
+        
         <section>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-lg">Mina bibliotek</h2>
@@ -156,7 +156,7 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* Recent items section */}
+        
         <section>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-lg flex items-center gap-2">

@@ -1,4 +1,4 @@
-// Create user page
+
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -54,7 +54,7 @@ export default function CreateUserPage() {
 
   return (
     <div className="min-h-screen bg-background safe-area-top safe-area-bottom">
-      {/* Header */}
+      
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
         <Button
           variant="ghost"
@@ -77,7 +77,7 @@ export default function CreateUserPage() {
           </div>
         </motion.div>
 
-        {/* Display name */}
+        
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -94,7 +94,7 @@ export default function CreateUserPage() {
           />
         </motion.div>
 
-        {/* PIN toggle */}
+        
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -116,7 +116,7 @@ export default function CreateUserPage() {
           />
         </motion.div>
 
-        {/* PIN inputs */}
+        
         {usePin && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
@@ -164,7 +164,7 @@ export default function CreateUserPage() {
           </motion.div>
         )}
 
-        {/* Error message */}
+        
         {error && (
           <motion.p
             initial={{ opacity: 0 }}
@@ -175,7 +175,7 @@ export default function CreateUserPage() {
           </motion.p>
         )}
 
-        {/* Submit button */}
+        
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

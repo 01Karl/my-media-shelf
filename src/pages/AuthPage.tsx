@@ -1,4 +1,4 @@
-// Auth/Login page - local PIN login
+
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -45,7 +45,7 @@ export default function AuthPage() {
     if (owner.pinHash) {
       setShowPinInput(true);
     } else {
-      // No PIN, direct login
+      
       await login(owner.ownerId);
     }
   };
@@ -79,7 +79,7 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background safe-area-top safe-area-bottom">
-      {/* Header */}
+      
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
         <motion.div
           initial={{ opacity: 0, y: -20 }}

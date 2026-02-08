@@ -1,4 +1,4 @@
-// Media type badge component
+
 
 import { cn } from '@/lib/utils';
 import { Film, Tv, HelpCircle, Clapperboard } from 'lucide-react';

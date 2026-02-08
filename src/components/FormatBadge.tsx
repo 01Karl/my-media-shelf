@@ -1,4 +1,4 @@
-// Format badge component
+
 
 import { cn } from '@/lib/utils';
 import type { MediaFormat } from '@/types';

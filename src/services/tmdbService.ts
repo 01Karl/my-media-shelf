@@ -1,5 +1,5 @@
-// TMDB Service - fetches movie/series metadata
-// API key should be set via environment variable VITE_TMDB_API_KEY
+
+
 
 import { tmdbCacheRepository } from '@/db';
 import type { MediaType, TMDBData, TMDBSearchResult } from '@/types';
@@ -11,12 +11,12 @@ const FALLBACK_API_KEY = '';
 const PREFERRED_LANGUAGE = 'sv-SE';
 const FALLBACK_LANGUAGE = 'en-US';
 
-// Get API key from environment or fallback constant
+
 const getApiKey = (): string | null => {
   return import.meta.env.VITE_TMDB_API_KEY || FALLBACK_API_KEY || null;
 };
 
-// Check if we're online
+
 const isOnline = (): boolean => {
   return navigator.onLine;
 };
@@ -49,13 +49,13 @@ const needsEnglishFallback = (data: { title?: string; overview?: string } | null
 };
 
 export const tmdbService = {
-  // Get full image URL
+  
   getImageUrl(path: string | null | undefined, size: 'w92' | 'w185' | 'w342' | 'w500' | 'w780' | 'original' = 'w342'): string | null {
     if (!path) return null;
     return `${TMDB_IMAGE_BASE}/${size}${path}`;
   },
 
-  // Search for movies
+  
   async searchMovies(query: string, year?: number): Promise<TMDBSearchResult[]> {
     const apiKey = getApiKey();
     if (!apiKey || !isOnline()) {
@@ -94,7 +94,7 @@ export const tmdbService = {
     }
   },
 
-  // Search for TV series
+  
   async searchSeries(query: string, year?: number): Promise<TMDBSearchResult[]> {
     const apiKey = getApiKey();
     if (!apiKey || !isOnline()) {
@@ -131,7 +131,7 @@ export const tmdbService = {
     }
   },
 
-  // Search both movies and series
+  
   async search(query: string, type: MediaType, year?: number): Promise<TMDBSearchResult[]> {
     if (type === 'movie' || type === 'documentary') {
       return this.searchMovies(query, year);
@@ -141,9 +141,9 @@ export const tmdbService = {
     return [];
   },
 
-  // Get movie details
+  
   async getMovieDetails(tmdbId: number): Promise<TMDBData | null> {
-    // Check cache first
+    
     const cached = await tmdbCacheRepository.get(tmdbId);
     if (cached) {
       return cached;
@@ -188,7 +188,7 @@ export const tmdbService = {
         runtime: movie.runtime ?? fallbackMovie?.runtime,
       };
 
-      // Cache the result
+      
       await tmdbCacheRepository.set(tmdbId, 'movie', data);
       
       return data;
@@ -198,9 +198,9 @@ export const tmdbService = {
     }
   },
 
-  // Get series details
+  
   async getSeriesDetails(tmdbId: number): Promise<TMDBData | null> {
-    // Check cache first
+    
     const cached = await tmdbCacheRepository.get(tmdbId);
     if (cached) {
       return cached;
@@ -245,7 +245,7 @@ export const tmdbService = {
         numberOfSeasons: series.number_of_seasons ?? fallbackSeries?.number_of_seasons,
       };
 
-      // Cache the result
+      
       await tmdbCacheRepository.set(tmdbId, 'series', data);
       
       return data;
@@ -255,7 +255,7 @@ export const tmdbService = {
     }
   },
 
-  // Get details by type
+  
   async getDetails(tmdbId: number, type: MediaType): Promise<TMDBData | null> {
     if (type === 'movie' || type === 'documentary') {
       return this.getMovieDetails(tmdbId);
@@ -265,7 +265,7 @@ export const tmdbService = {
     return null;
   },
 
-  // Check if TMDB is available
+  
   isAvailable(): boolean {
     return !!getApiKey() && isOnline();
   },

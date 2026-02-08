@@ -1,4 +1,4 @@
-// Library detail page - shows items in a library
+
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -61,7 +61,7 @@ export default function LibraryDetailPage() {
         const libraryItems = await itemRepository.getByLibrary(libraryId);
         setItems(libraryItems);
 
-        // Load TMDB cache
+        
         const cache: Record<number, TMDBData> = {};
         for (const item of libraryItems) {
           if (item.tmdbId) {
@@ -224,7 +224,7 @@ export default function LibraryDetailPage() {
       />
 
       <div className="px-4 py-4 space-y-4">
-        {/* Shared library indicator */}
+        
         {library.sharedLibraryId && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 text-sm">
             <Users className="w-4 h-4 text-primary" />
@@ -232,7 +232,7 @@ export default function LibraryDetailPage() {
           </div>
         )}
 
-        {/* Search and filters */}
+        
         <Button
           className="w-full"
           onClick={() => navigate(`/add?library=${libraryId}&scan=1`)}
@@ -297,7 +297,7 @@ export default function LibraryDetailPage() {
           </div>
         </div>
 
-        {/* Items */}
+        
         {hasResults ? (
           viewMode === 'grid' ? (
             <div className="space-y-6">
@@ -449,7 +449,7 @@ export default function LibraryDetailPage() {
         )}
       </div>
 
-      {/* FAB */}
+      
       <motion.button
         whileTap={{ scale: 0.95 }}
         className="fab"

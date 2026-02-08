@@ -1,4 +1,4 @@
-// Libraries list page
+
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -85,7 +85,7 @@ export default function LibrariesPage() {
           </div>
         ) : filteredLibraries.length > 0 ? (
           <div className="space-y-6">
-            {/* Shared libraries */}
+            
             {sharedLibraries.length > 0 && (
               <section>
                 <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
@@ -114,7 +114,7 @@ export default function LibrariesPage() {
               </section>
             )}
 
-            {/* Private libraries */}
+            
             {privateLibraries.length > 0 && (
               <section>
                 <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">

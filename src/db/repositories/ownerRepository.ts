@@ -1,10 +1,10 @@
-// Owner repository - manages local user accounts
+
 
 import { v4 as uuidv4 } from 'uuid';
 import { getDatabase } from '../database';
 import type { Owner } from '@/types';
 
-// Simple hash function for PIN (in production, use proper crypto)
+
 async function hashPin(pin: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(pin + 'media-library-salt');
@@ -103,13 +103,13 @@ export const ownerRepository = {
     return verifyPin(pin, owner.pinHash);
   },
 
-  // For BLE sync - add or update owner from remote
+  
   async upsert(owner: Owner): Promise<Owner> {
     const db = await getDatabase();
     const existing = await db.get('owners', owner.ownerId);
     
     if (existing) {
-      // Only update display name, keep local pinHash
+      
       const updated: Owner = {
         ...existing,
         displayName: owner.displayName,
@@ -118,7 +118,7 @@ export const ownerRepository = {
       await db.put('owners', updated);
       return updated;
     } else {
-      // Add new owner without pinHash (remote owners don't need auth)
+      
       const newOwner: Owner = {
         ...owner,
         pinHash: undefined,

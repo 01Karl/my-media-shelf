@@ -1,8 +1,8 @@
-// BLE Sync Service - handles Bluetooth Low Energy sync between devices
-// Uses Capacitor BLE plugin for native, provides stub for web
 
-// TODO: Install @capacitor-community/bluetooth-le for native builds
-// import { BleClient, ScanResult } from '@capacitor-community/bluetooth-le';
+
+
+
+
 
 import type { 
   BLEDevice, 
@@ -17,14 +17,14 @@ import type {
 } from '@/types';
 import { libraryRepository, itemRepository, ownerRepository } from '@/db';
 
-// BLE Service UUIDs (custom for this app)
+
 const SERVICE_UUID = 'a0000001-0000-1000-8000-00805f9b34fb';
 const CHARACTERISTIC_UUID = 'a0000002-0000-1000-8000-00805f9b34fb';
 
-// App version for compatibility check
+
 const APP_VERSION = '1.0.0';
 
-// Check if running in Capacitor
+
 const isCapacitor = (): boolean => {
   return typeof (window as any).Capacitor !== 'undefined';
 };
@@ -56,7 +56,7 @@ const queryBluetoothPermission = async (): Promise<PermissionState | null> => {
   return null;
 };
 
-// Sync state
+
 interface SyncState {
   isScanning: boolean;
   isConnected: boolean;
@@ -83,7 +83,7 @@ let syncState: SyncState = {
   },
 };
 
-// Event callbacks
+
 type SyncEventCallback = (state: SyncState) => void;
 const eventListeners: SyncEventCallback[] = [];
 
@@ -97,9 +97,9 @@ function updateState(updates: Partial<SyncState>) {
 }
 
 export const bleSyncService = {
-  /**
-   * Subscribe to sync state changes
-   */
+  
+
+
   subscribe(callback: SyncEventCallback): () => void {
     eventListeners.push(callback);
     callback({ ...syncState });
@@ -112,32 +112,32 @@ export const bleSyncService = {
     };
   },
 
-  /**
-   * Get current sync state
-   */
+  
+
+
   getState(): SyncState {
     return { ...syncState };
   },
 
-  /**
-   * Check if BLE is available
-   */
+  
+
+
   async isAvailable(): Promise<boolean> {
     if (!isCapacitor()) {
-      // Web Bluetooth API check
+      
       return isWebBluetoothAvailable();
     }
     
-    // TODO: Check Capacitor BLE availability
+    
     return true;
   },
 
-  /**
-   * Request Bluetooth permissions when supported
-   */
+  
+
+
   async requestPermissions(): Promise<boolean> {
     if (isCapacitor()) {
-      // TODO: Implement Capacitor BLE permission request
+      
       return true;
     }
 
@@ -156,9 +156,9 @@ export const bleSyncService = {
     return true;
   },
 
-  /**
-   * Start scanning for nearby devices
-   */
+  
+
+
   async startScanning(): Promise<BLEDevice[]> {
     if (!isCapacitor()) {
       if (!isWebBluetoothAvailable()) {
@@ -189,16 +189,16 @@ export const bleSyncService = {
     try {
       updateState({ isScanning: true });
       
-      // TODO: Implement Capacitor BLE scanning
-      /*
-      await BleClient.initialize();
-      await BleClient.requestLEScan(
-        { services: [SERVICE_UUID] },
-        (result: ScanResult) => {
-          console.log('Found device:', result);
-        }
-      );
-      */
+      
+      
+
+
+
+
+
+
+
+
       
       updateState({ isScanning: false });
       return [];
@@ -209,19 +209,19 @@ export const bleSyncService = {
     }
   },
 
-  /**
-   * Stop scanning
-   */
+  
+
+
   async stopScanning(): Promise<void> {
     if (isCapacitor()) {
-      // TODO: BleClient.stopLEScan();
+      
     }
     updateState({ isScanning: false });
   },
 
-  /**
-   * Connect to a device
-   */
+  
+
+
   async connect(device: BLEDevice): Promise<boolean> {
     console.log('Connecting to device:', device);
     
@@ -230,7 +230,7 @@ export const bleSyncService = {
     });
 
     if (!isCapacitor()) {
-      // Simulate connection
+      
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       updateState({
@@ -244,21 +244,21 @@ export const bleSyncService = {
     }
 
     try {
-      // TODO: Implement Capacitor BLE connection
-      /*
-      await BleClient.connect(device.id);
       
-      // Send handshake
-      const owner = await ownerRepository.getAll().then(owners => owners[0]);
-      const handshake: SyncHandshake = {
-        type: 'HELLO',
-        ownerId: owner?.ownerId || '',
-        displayName: owner?.displayName || 'Unknown',
-        appVersion: APP_VERSION,
-      };
       
-      await this.sendMessage(handshake);
-      */
+
+
+
+
+
+
+
+
+
+
+
+
+
       
       return true;
     } catch (error) {
@@ -270,14 +270,14 @@ export const bleSyncService = {
     }
   },
 
-  /**
-   * Disconnect from the current device
-   */
+  
+
+
   async disconnect(): Promise<void> {
     console.log('Disconnecting from device');
     
     if (isCapacitor() && syncState.connectedDevice) {
-      // TODO: BleClient.disconnect(syncState.connectedDevice.id);
+      
     }
 
     updateState({
@@ -289,9 +289,9 @@ export const bleSyncService = {
     });
   },
 
-  /**
-   * Get list of shared libraries to sync
-   */
+  
+
+
   async getSharedLibraries(ownerId: string): Promise<{ sharedLibraryId: string; name: string; itemCount: number }[]> {
     const libraries = await libraryRepository.getByOwner(ownerId);
     const sharedLibraries = libraries.filter(lib => lib.sharedLibraryId !== null);
@@ -307,9 +307,9 @@ export const bleSyncService = {
     return result;
   },
 
-  /**
-   * Select a library to sync
-   */
+  
+
+
   async selectLibrary(sharedLibraryId: string): Promise<void> {
     updateState({
       selectedLibraryId: sharedLibraryId,
@@ -317,9 +317,9 @@ export const bleSyncService = {
     });
   },
 
-  /**
-   * Perform the sync
-   */
+  
+
+
   async performSync(localOwnerId: string, localLibraryId: string): Promise<SyncDone> {
     console.log('Performing sync for library:', localLibraryId);
     
@@ -328,7 +328,7 @@ export const bleSyncService = {
     });
 
     if (!isCapacitor()) {
-      // Simulate sync
+      
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       const result: SyncDone = {
@@ -346,7 +346,7 @@ export const bleSyncService = {
     }
 
     try {
-      // Get local items
+      
       const library = await libraryRepository.getById(localLibraryId);
       if (!library?.sharedLibraryId) {
         throw new Error('Library is not shared');
@@ -355,30 +355,30 @@ export const bleSyncService = {
       const items = await itemRepository.getForSync(library.sharedLibraryId);
       const owners = await ownerRepository.getAll();
       
-      // Send items to remote device
+      
       const transferMessage: SyncTransferItems = {
         type: 'TRANSFER_ITEMS',
         items,
         owners,
       };
       
-      // TODO: Send via BLE
-      // await this.sendMessage(transferMessage);
       
-      // Wait for response with remote items
-      // TODO: Receive via BLE
       
-      // Process received items
+      
+      
+      
+      
+      
       let added = 0;
       let updated = 0;
       let matched = 0;
       
-      // TODO: Process remote items
-      // for (const remoteItem of remoteItems) {
-      //   const result = await itemRepository.upsertForSync(remoteItem, localLibraryId);
-      //   if (result.isNew) added++;
-      //   else updated++;
-      // }
+      
+      
+      
+      
+      
+      
 
       const result: SyncDone = {
         type: 'DONE',
@@ -401,9 +401,9 @@ export const bleSyncService = {
     }
   },
 
-  /**
-   * Start advertising this device for others to find
-   */
+  
+
+
   async startAdvertising(displayName: string): Promise<void> {
     console.log('Starting BLE advertising as:', displayName);
     
@@ -412,37 +412,37 @@ export const bleSyncService = {
       return;
     }
 
-    // TODO: Implement BLE advertising for Capacitor
-    // This is typically done via a BLE peripheral plugin
+    
+    
   },
 
-  /**
-   * Stop advertising
-   */
+  
+
+
   async stopAdvertising(): Promise<void> {
     console.log('Stopping BLE advertising');
     
-    // TODO: Stop advertising
+    
   },
 
-  /**
-   * Send a message over BLE
-   */
+  
+
+
   async sendMessage(message: SyncMessage): Promise<void> {
     const json = JSON.stringify(message);
     const chunks = this.chunkMessage(json);
     
     console.log(`Sending message type: ${message.type}, chunks: ${chunks.length}`);
     
-    // TODO: Send each chunk via BLE characteristic
+    
     for (const chunk of chunks) {
-      // await BleClient.write(deviceId, SERVICE_UUID, CHARACTERISTIC_UUID, chunk);
+      
     }
   },
 
-  /**
-   * Chunk large messages for BLE transfer
-   */
+  
+
+
   chunkMessage(json: string, chunkSize = 512): Uint8Array[] {
     const encoder = new TextEncoder();
     const data = encoder.encode(json);
@@ -455,9 +455,9 @@ export const bleSyncService = {
     return chunks;
   },
 
-  /**
-   * Reset sync state
-   */
+  
+
+
   reset(): void {
     updateState({
       isScanning: false,

@@ -1,4 +1,4 @@
-// App store - global state management with Zustand
+
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
@@ -7,18 +7,18 @@ import { initDatabase, ownerRepository, getSetting, setSetting } from '@/db';
 import { runOneTimeSeriesImport } from '@/services/oneTimeSeriesImport';
 
 interface AppState {
-  // Auth state
+  
   isInitialized: boolean;
   isAuthenticated: boolean;
   currentOwner: Owner | null;
   
-  // Network state
+  
   isOnline: boolean;
   
-  // UI state
+  
   activeLibraryId: string | null;
   
-  // Actions
+  
   initialize: () => Promise<void>;
   login: (ownerId: string, pin?: string) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -38,16 +38,16 @@ export const useAppStore = create<AppState>()(
 
       initialize: async () => {
         try {
-          // Initialize database
+          
           await initDatabase();
           
-          // Check if there's a saved owner
+          
           const savedOwnerId = await getSetting('currentOwnerId');
           
           if (savedOwnerId) {
             const owner = await ownerRepository.getById(savedOwnerId);
             if (owner) {
-              // If owner has no PIN, auto-login
+              
               if (!owner.pinHash) {
                 set({ 
                   isInitialized: true, 
@@ -57,7 +57,7 @@ export const useAppStore = create<AppState>()(
                 await runOneTimeSeriesImport(owner.ownerId);
                 return;
               }
-              // Otherwise, require PIN
+              
               set({ 
                 isInitialized: true, 
                 isAuthenticated: false, 
@@ -81,18 +81,18 @@ export const useAppStore = create<AppState>()(
           return false;
         }
         
-        // If owner has PIN, verify it
+        
         if (owner.pinHash && pin) {
           const isValid = await ownerRepository.authenticate(ownerId, pin);
           if (!isValid) {
             return false;
           }
         } else if (owner.pinHash && !pin) {
-          // PIN required but not provided
+          
           return false;
         }
         
-        // Save current owner
+        
         await setSetting('currentOwnerId', ownerId);
         
         set({ isAuthenticated: true, currentOwner: owner });
@@ -123,14 +123,14 @@ export const useAppStore = create<AppState>()(
     {
       name: 'media-library-app-storage',
       partialize: (state) => ({
-        // Only persist these fields
+        
         activeLibraryId: state.activeLibraryId,
       }),
     }
   )
 );
 
-// Listen for online/offline events
+
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
     useAppStore.getState().updateOnlineStatus(true);

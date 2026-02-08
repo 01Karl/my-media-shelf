@@ -1,9 +1,9 @@
-// TMDB cache repository - caches TMDB data locally
+
 
 import { getDatabase } from '../database';
 import type { TMDBCache, TMDBData, MediaType } from '@/types';
 
-const CACHE_TTL_DAYS = 7; // Cache TMDB data for 7 days
+const CACHE_TTL_DAYS = 7; 
 
 export const tmdbCacheRepository = {
   async get(tmdbId: number): Promise<TMDBData | null> {
@@ -12,14 +12,14 @@ export const tmdbCacheRepository = {
     
     if (!cached) return null;
     
-    // Check if cache is expired
+    
     const cacheDate = new Date(cached.updatedAt);
     const now = new Date();
     const daysDiff = (now.getTime() - cacheDate.getTime()) / (1000 * 60 * 60 * 24);
     
     if (daysDiff > CACHE_TTL_DAYS) {
-      // Cache expired, but still return it (we're offline-first)
-      // The service layer can decide to refresh if online
+      
+      
       console.log(`TMDB cache for ${tmdbId} is ${Math.floor(daysDiff)} days old`);
     }
     
@@ -57,7 +57,7 @@ export const tmdbCacheRepository = {
       const cacheDate = new Date(cached.updatedAt);
       const daysDiff = (now.getTime() - cacheDate.getTime()) / (1000 * 60 * 60 * 24);
       
-      if (daysDiff > CACHE_TTL_DAYS * 2) { // Delete after 2x TTL
+      if (daysDiff > CACHE_TTL_DAYS * 2) { 
         await db.delete('tmdb_cache', cached.tmdbId);
         deleted++;
       }
