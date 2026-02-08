@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Camera, Image, Film, Tv, HelpCircle,
   ChevronRight, Check, Search, Loader2,
-  Sparkles
+  Sparkles, Clapperboard
 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { FormatBadge } from '@/components/FormatBadge';
