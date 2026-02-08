@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Camera, Image, Film, Tv, HelpCircle, Clapperboard,
+  Camera, Image, Film, Tv, HelpCircle,
   ChevronRight, Check, Search, Loader2,
   Sparkles
 } from 'lucide-react';
