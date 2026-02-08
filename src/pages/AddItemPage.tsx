@@ -1,6 +1,6 @@
 // Add item page - multi-step flow for adding media items
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -66,6 +66,7 @@ export default function AddItemPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { currentOwner } = useAppStore();
+  const scanMode = searchParams.get('scan') === '1';
 
   // State
   const [step, setStep] = useState<Step>('select-library');
@@ -98,6 +99,11 @@ export default function AddItemPage() {
   const [isSearchingTmdb, setIsSearchingTmdb] = useState(false);
   
   const [isSaving, setIsSaving] = useState(false);
+  const libraryPath = selectedLibrary ? `/libraries/${selectedLibrary.libraryId}` : '/libraries';
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [isLiveCameraActive, setIsLiveCameraActive] = useState(false);
+  const [liveCameraError, setLiveCameraError] = useState<string | null>(null);
 
   // Load libraries
   useEffect(() => {
@@ -112,12 +118,12 @@ export default function AddItemPage() {
         const lib = libs.find(l => l.libraryId === libraryId);
         if (lib) {
           setSelectedLibrary(lib);
-          setStep('select-type');
+          setStep(scanMode ? 'capture-images' : 'select-type');
         }
       }
     };
     loadLibraries();
-  }, [currentOwner, searchParams]);
+  }, [currentOwner, scanMode, searchParams]);
 
   // Capture front image
   const handleCaptureFront = async () => {
@@ -147,14 +153,96 @@ export default function AddItemPage() {
     }
   }, [step]);
 
+  useEffect(() => {
+    if (scanMode && step === 'capture-images') {
+      void startLiveCamera();
+    } else {
+      stopLiveCamera();
+    }
+
+    return () => {
+      stopLiveCamera();
+    };
+  }, [scanMode, step]);
+
+  const startLiveCamera = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setLiveCameraError('Livekamera stöds inte i den här webbläsaren.');
+      return;
+    }
+
+    if (isLiveCameraActive) {
+      return;
+    }
+
+    setLiveCameraError(null);
+
+    try {
+      stopLiveCamera();
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      setIsLiveCameraActive(true);
+    } catch (error) {
+      console.error('Live camera error:', error);
+      setLiveCameraError('Kunde inte starta kameran. Kontrollera behörigheter.');
+      setIsLiveCameraActive(false);
+    }
+  };
+
+  const stopLiveCamera = () => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsLiveCameraActive(false);
+  };
+
+  const captureLiveFrame = async () => {
+    if (!videoRef.current) return null;
+
+    const video = videoRef.current;
+    const width = video.videoWidth || 1280;
+    const height = video.videoHeight || 720;
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+
+    if (!context) return null;
+    context.drawImage(video, 0, 0, width, height);
+    return canvas.toDataURL('image/jpeg', 0.9);
+  };
+
+  const handleLiveScan = async () => {
+    setCameraError(null);
+    const frame = await captureLiveFrame();
+
+    if (!frame) {
+      setCameraError('Ingen bild kunde fångas från kameran. Försök igen.');
+      return;
+    }
+
+    setFrontImage(frame);
+    stopLiveCamera();
+    await handleProcessImages(frame, backImage);
+  };
+
   // Process OCR and proceed
-  const handleProcessImages = async () => {
+  const handleProcessImages = async (overrideFront?: string | null, overrideBack?: string | null) => {
     setIsProcessingOcr(true);
     
     try {
       const ocrResults = await ocrService.processMediaCovers(
-        frontImage || undefined,
-        backImage || undefined
+        overrideFront ?? frontImage || undefined,
+        overrideBack ?? backImage || undefined
       );
 
       const nextTitle = ocrResults.suggestedTitle?.trim() || title;
@@ -337,7 +425,7 @@ export default function AddItemPage() {
                     key={lib.libraryId}
                     onClick={() => {
                       setSelectedLibrary(lib);
-                      setStep('select-type');
+                      setStep(scanMode ? 'capture-images' : 'select-type');
                     }}
                     className="w-full flex items-center gap-4 p-4 rounded-xl bg-card border border-border hover:bg-secondary/50 transition-colors text-left"
                   >
@@ -536,9 +624,67 @@ export default function AddItemPage() {
             <div>
               <h2 className="text-lg font-semibold">Hitta omslag</h2>
               <p className="text-sm text-muted-foreground">
-                Lägg till ett tydligt omslag. Vi plockar titel och år när det går.
+                {scanMode
+                  ? 'Starta livekameran, rikta mot omslaget och skanna.'
+                  : 'Lägg till ett tydligt omslag. Vi plockar titel och år när det går.'}
               </p>
             </div>
+
+            {scanMode && (
+              <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Livekamera</p>
+                    <p className="text-base font-semibold">Skanna omslag</p>
+                    <p className="text-sm text-muted-foreground">
+                      Håll omslaget i bild så försöker vi läsa av titel och år.
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Button variant="outline" onClick={startLiveCamera} disabled={isLiveCameraActive}>
+                      {isLiveCameraActive ? 'Kamera igång' : 'Starta kamera'}
+                    </Button>
+                    <Button onClick={handleLiveScan} disabled={!isLiveCameraActive || isProcessingOcr}>
+                      Skanna omslag
+                    </Button>
+                  </div>
+                </div>
+                <div className="overflow-hidden rounded-xl border border-dashed border-border bg-secondary/30">
+                  <video
+                    ref={videoRef}
+                    className={`h-56 w-full object-cover ${isLiveCameraActive ? '' : 'hidden'}`}
+                    playsInline
+                    muted
+                  />
+                  {!isLiveCameraActive && (
+                    <div className="flex h-56 items-center justify-center text-sm text-muted-foreground">
+                      Livekameran är avstängd
+                    </div>
+                  )}
+                </div>
+                {liveCameraError && (
+                  <p className="text-sm text-destructive">{liveCameraError}</p>
+                )}
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Typ</p>
+                  <div className="flex flex-wrap gap-2">
+                    {MEDIA_TYPES.map((type) => (
+                      <button
+                        key={type.value}
+                        onClick={() => setMediaType(type.value)}
+                        className={`rounded-full border px-3 py-1 text-xs font-medium transition-all ${
+                          mediaType === type.value
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-border bg-card hover:bg-secondary/50'
+                        }`}
+                      >
+                        {type.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="grid gap-4">
               <div className="rounded-2xl border border-border bg-card p-4">
@@ -608,9 +754,9 @@ export default function AddItemPage() {
               <Button
                 variant="outline"
                 className="flex-1"
-                onClick={() => setStep('edit-details')}
+                onClick={() => (scanMode ? navigate(libraryPath) : setStep('edit-details'))}
               >
-                Hoppa över
+                {scanMode ? 'Avbryt' : 'Hoppa över'}
               </Button>
               <Button 
                 className="flex-1" 
@@ -717,12 +863,21 @@ export default function AddItemPage() {
               >
                 Fota igen
               </Button>
-              <Button
-                className="flex-1"
-                onClick={() => setStep('edit-details')}
-              >
-                {scanMatches.length > 0 ? 'Fortsätt till detaljer' : 'Fortsätt'}
-              </Button>
+              {scanMode ? (
+                <Button
+                  className="flex-1"
+                  onClick={() => navigate(libraryPath)}
+                >
+                  Klart
+                </Button>
+              ) : (
+                <Button
+                  className="flex-1"
+                  onClick={() => setStep('edit-details')}
+                >
+                  {scanMatches.length > 0 ? 'Fortsätt till detaljer' : 'Fortsätt'}
+                </Button>
+              )}
             </div>
           </motion.div>
         );
@@ -998,6 +1153,15 @@ export default function AddItemPage() {
 
   return (
     <div className="page-container">
+      {scanMode && isProcessingOcr && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="rounded-2xl border border-border bg-card px-6 py-5 text-center shadow-lg">
+            <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-primary" />
+            <p className="text-base font-semibold">Analyserar omslag...</p>
+            <p className="text-sm text-muted-foreground">Vi letar efter titel och år.</p>
+          </div>
+        </div>
+      )}
       <AlertDialog
         open={showMergeDialog}
         onOpenChange={(open) => {
