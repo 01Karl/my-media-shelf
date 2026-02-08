@@ -1,7 +1,7 @@
 // Media type badge component
 
 import { cn } from '@/lib/utils';
-import { Film, Tv, HelpCircle } from 'lucide-react';
+import { Film, Tv, HelpCircle, Clapperboard } from 'lucide-react';
 import type { MediaType } from '@/types';
 
 interface TypeBadgeProps {
@@ -13,6 +13,7 @@ interface TypeBadgeProps {
 const typeConfig: Record<MediaType, { label: string; icon: typeof Film }> = {
   'movie': { label: 'Film', icon: Film },
   'series': { label: 'Serie', icon: Tv },
+  'documentary': { label: 'Dokumentär', icon: Clapperboard },
   'other': { label: 'Övrigt', icon: HelpCircle },
 };
 

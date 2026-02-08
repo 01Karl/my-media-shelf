@@ -58,6 +58,7 @@ const MEDIA_FORMATS: { value: MediaFormat; label: string }[] = [
 const MEDIA_TYPES: { value: MediaType; label: string; icon: typeof Film }[] = [
   { value: 'movie', label: 'Film', icon: Film },
   { value: 'series', label: 'Serie', icon: Tv },
+  { value: 'documentary', label: 'Dokumentär', icon: Clapperboard },
   { value: 'other', label: 'Övrigt', icon: HelpCircle },
 ];
 
@@ -402,7 +403,9 @@ export default function AddItemPage() {
                             ? 'Lägg till en film i biblioteket.'
                             : type.value === 'series'
                               ? 'Säsonger, boxar och TV-serier.'
-                              : 'Allt som inte passar i film eller serie.'}
+                              : type.value === 'documentary'
+                                ? 'Dokumentärer och faktaserier.'
+                                : 'Allt som inte passar i film eller serie.'}
                         </p>
                       </div>
                       {isActive && (
