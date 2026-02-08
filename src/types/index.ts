@@ -1,6 +1,6 @@
 // Core types for the media library app
 
-export type MediaType = 'movie' | 'series' | 'other';
+export type MediaType = 'movie' | 'series' | 'documentary' | 'other';
 
 export type MediaFormat = 'DVD' | 'Blu-ray' | '4K Blu-ray' | 'Digital' | 'VHS' | 'Other';
 

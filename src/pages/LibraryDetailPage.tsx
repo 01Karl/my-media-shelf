@@ -248,6 +248,7 @@ export default function LibraryDetailPage() {
               <SelectItem value="all">Alla typer</SelectItem>
               <SelectItem value="movie">Film</SelectItem>
               <SelectItem value="series">Serie</SelectItem>
+              <SelectItem value="documentary">Dokumentär</SelectItem>
               <SelectItem value="other">Övrigt</SelectItem>
             </SelectContent>
           </Select>

@@ -133,7 +133,7 @@ export const tmdbService = {
 
   // Search both movies and series
   async search(query: string, type: MediaType, year?: number): Promise<TMDBSearchResult[]> {
-    if (type === 'movie') {
+    if (type === 'movie' || type === 'documentary') {
       return this.searchMovies(query, year);
     } else if (type === 'series') {
       return this.searchSeries(query, year);
@@ -257,7 +257,7 @@ export const tmdbService = {
 
   // Get details by type
   async getDetails(tmdbId: number, type: MediaType): Promise<TMDBData | null> {
-    if (type === 'movie') {
+    if (type === 'movie' || type === 'documentary') {
       return this.getMovieDetails(tmdbId);
     } else if (type === 'series') {
       return this.getSeriesDetails(tmdbId);
