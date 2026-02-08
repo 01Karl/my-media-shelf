@@ -6,18 +6,21 @@ import { motion } from 'framer-motion';
 import { 
   User, LogOut, Trash2, Database, 
   Smartphone, Info, ChevronRight, 
-  Moon, HardDrive, Shield
+  Moon, HardDrive, Shield, Languages
 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAppStore } from '@/stores/appStore';
 import { storageService } from '@/services';
 import { tmdbCacheRepository } from '@/db';
+import { SUPPORTED_LANGUAGES } from '@/lib/language';
+import type { AppLanguage } from '@/lib/language';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const { currentOwner, logout, isOnline } = useAppStore();
+  const { currentOwner, logout, isOnline, language, setLanguage } = useAppStore();
   const [storageStats, setStorageStats] = useState<{ used: number; available: number } | null>(null);
   const [cacheStats, setCacheStats] = useState<{ count: number } | null>(null);
 
@@ -97,6 +100,37 @@ export default function SettingsPage() {
                 </div>
                 <ChevronRight className="w-5 h-5 text-muted-foreground" />
               </button>
+            </div>
+          </div>
+        </section>
+
+        
+        <section>
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">Språk</h3>
+          <div className="bg-card rounded-xl border border-border overflow-hidden">
+            <div className="flex items-center justify-between p-4">
+              <div className="flex items-center gap-3">
+                <Languages className="w-5 h-5 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Appspråk</p>
+                  <p className="text-sm text-muted-foreground">Välj språk för appen</p>
+                </div>
+              </div>
+              <Select
+                value={language}
+                onValueChange={(value) => void setLanguage(value as AppLanguage)}
+              >
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue placeholder="Välj språk" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUPPORTED_LANGUAGES.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </section>
