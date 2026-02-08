@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: "com.mymediashelf.app",
-  appName: "My Media Shelf",
+  appId: "com.mediacodex.app",
+  appName: "MediaCodex",
   webDir: "dist",
   bundledWebRuntime: false,
 };

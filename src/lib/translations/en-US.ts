@@ -128,7 +128,7 @@ export const enUS = {
     logout: 'Log out',
     confirmLogout: 'Are you sure you want to log out?',
     confirmClearCache: 'Clear all TMDB cache? This will not affect your saved items.',
-    appFooter: 'ScoobyScan',
+    appFooter: 'MediaCodex',
     dataFromTmdb: 'Data from TMDB',
   },
   sync: {

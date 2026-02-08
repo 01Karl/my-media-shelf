@@ -128,7 +128,7 @@ export const svSE = {
     logout: 'Logga ut',
     confirmLogout: 'Är du säker på att du vill logga ut?',
     confirmClearCache: 'Rensa all TMDB-cache? Detta påverkar inte dina sparade objekt.',
-    appFooter: 'ScoobyScan',
+    appFooter: 'MediaCodex',
     dataFromTmdb: 'Data från TMDB',
   },
   sync: {
